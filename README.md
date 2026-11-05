@@ -4,7 +4,9 @@ A browser design tool for halftone / ASCII-dither graphics and text-filled
 shapes, as stills or animations. Each version is a single HTML file with no
 build step.
 
-**Open it:** double-click `index.html` (it redirects to the latest version), or run:
+**Live:** <https://surfer988.github.io/Design-Tools/Halftone%20Tool/> (GitHub Pages, updates after each sync)
+
+**Open locally:** double-click `index.html` (it redirects to the latest version), or run:
 
 ```bash
 python3 -m http.server 7823
