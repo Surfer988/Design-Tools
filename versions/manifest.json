@@ -1,3 +1,9 @@
 [
-  { "name": "V1", "file": "V1.html", "savedAt": "2026-05-19" }
+  {
+    "name": "v1",
+    "dir": "v1",
+    "savedAt": "2026-05-19",
+    "note": "Original stable \u00b7 Pattern mode",
+    "current": true
+  }
 ]

@@ -268,24 +268,7 @@ input[type=color] {
 }
 #svgfill-editor:focus { border-color: #555; }
 #svgfill-editor span { /* inline styled spans live here */ }
-/* Multi-block editor */
-#svgfill-blocks-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-.svgfill-block { position: relative; }
-.svgfill-block-editor {
-  min-height: 36px; background: #1e1e1e; border: 1px solid #333; border-radius: 4px;
-  color: #ccc; font-size: 14px; font-family: 'Courier New', monospace;
-  padding: 7px 26px 7px 10px; outline: none; word-break: break-word; line-height: 1.5;
-}
-.svgfill-block-editor:focus { border-color: #555; }
-.svgfill-block-editor span { /* inline styled spans */ }
-.svgfill-block-remove {
-  position: absolute; top: 4px; right: 4px; z-index: 2;
-  background: none; border: none; color: #3a3a3a; cursor: pointer;
-  font-size: 15px; line-height: 1; padding: 1px 4px; border-radius: 3px;
-  transition: color 0.1s; font-family: inherit;
-}
-.svgfill-block-remove:hover { color: #f66; }
-.svgfill-update-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.svgfill-update-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 .svgfill-update-btn {
   flex: 1; padding: 6px 10px; background: #2a3a4a; border: 1px solid #3d5570; border-radius: 4px;
   color: #aaccee; font-size: 11px; font-weight: 600; cursor: pointer;
@@ -312,79 +295,8 @@ input[type=color] {
 .tb-btn.active { background: #3a3a3a; color: #fff; }
 .tb-sel { background: #1e1e1e; border: 1px solid #333; color: #ccc; font-size: 10px; padding: 2px 4px; border-radius: 3px; font-family: inherit; }
 .tb-num { background: #1e1e1e; border: 1px solid #333; color: #ccc; font-size: 10px; padding: 2px 4px; border-radius: 3px; width: 42px; font-family: inherit; }
-.tb-range { width: 60px; accent-color: #777; cursor: pointer; }
-.tb-hex {
-  background: #1e1e1e; border: 1px solid #333; color: #ccc;
-  font-size: 10px; padding: 2px 4px; border-radius: 3px;
-  width: 56px; font-family: 'Courier New', monospace; letter-spacing: 0.02em;
-}
-/* swatch button replaces <input type=color>; flex:1 hex fills the row */
-.cp-swatch {
-  width: 22px; height: 22px; min-width: 22px;
-  border-radius: 4px; border: 1px solid #555;
-  cursor: pointer; padding: 0; flex-shrink: 0;
-}
-.tb-hex.cp-flex { width: auto; flex: 1; min-width: 0; }
-
-/* ── Custom Color Picker popup ────────────────────────────────────────────── */
-#cp-popup {
-  display: none; position: fixed; z-index: 99999;
-  background: #1e1e1e; border: 1px solid #3a3a3a;
-  border-radius: 8px; padding: 10px 10px 8px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.7);
-  width: 192px; user-select: none;
-}
-#cp-sv-wrap {
-  position: relative; width: 172px; height: 120px;
-  border-radius: 4px; overflow: hidden;
-  cursor: crosshair; margin-bottom: 8px;
-}
-#cp-sv-canvas { display: block; width: 172px; height: 120px; }
-#cp-sv-cursor {
-  position: absolute; width: 10px; height: 10px;
-  border: 2px solid #fff; border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
-}
-.cp-track { position: relative; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
-.cp-track input[type=range] {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  -webkit-appearance: none; appearance: none;
-  background: transparent; margin: 0; padding: 0;
-  cursor: pointer; border: none; outline: none;
-}
-.cp-track input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 14px; height: 14px;
-  border-radius: 50%; background: #fff;
-  border: 1.5px solid rgba(0,0,0,0.35);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4); cursor: pointer;
-}
-.cp-track input[type=range]::-webkit-slider-runnable-track { background: transparent; }
-#cp-hue-track { background: linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
-#cp-opa-checker {
-  position: absolute; inset: 0;
-  background-image: linear-gradient(45deg,#555 25%,transparent 25%),
-    linear-gradient(-45deg,#555 25%,transparent 25%),
-    linear-gradient(45deg,transparent 75%,#555 75%),
-    linear-gradient(-45deg,transparent 75%,#555 75%);
-  background-size: 8px 8px;
-  background-position: 0 0,0 4px,4px -4px,-4px 0px;
-  background-color: #333;
-}
-#cp-opa-gradient { position: absolute; inset: 0; border-radius: 6px; }
-.cp-bottom { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
-#cp-hex-input {
-  flex: 1; background: #141414; border: 1px solid #333; color: #ccc;
-  font-size: 11px; padding: 3px 5px; border-radius: 3px;
-  font-family: 'Courier New', monospace; letter-spacing: 0.03em; outline: none;
-}
-#cp-opa-val {
-  width: 36px; background: #141414; border: 1px solid #333; color: #ccc;
-  font-size: 11px; padding: 3px 4px; border-radius: 3px; text-align: center;
-  font-family: inherit; outline: none;
-}
-#cp-opa-pct { font-size: 10px; color: #555; }
+.tb-color { width: 22px; height: 22px; padding: 0; border: 1px solid #333; border-radius: 3px; cursor: pointer; background: none; }
+.tb-range { width: 70px; accent-color: #777; cursor: pointer; }
 .tb-clear { background: #2a1e1e; color: #c08080; border-color: #4a3030; }
 .tb-clear:hover { background: #3a2424; color: #ffaaaa; }
 
@@ -552,6 +464,7 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
       <div class="toggle-group">
         <button class="toggle-btn active" id="mode-phrase" onclick="setMode('phrase')">Phrase tiling</button>
         <button class="toggle-btn"        id="mode-density" onclick="setMode('density')">Density set</button>
+        <button class="toggle-btn"        id="mode-pattern" onclick="setMode('pattern')">Pattern</button>
       </div>
       <div id="phrase-ctrl">
         <input type="text" id="phrase-input" class="mono" value="HELLO WORLD"
@@ -563,6 +476,16 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
                placeholder="Light → dark chars" style="margin-top:5px"
                oninput="activeDensityPreset=null; renderDensityChips(); debouncedRender()">
         <div class="hint" style="margin-top:3px">Left = lightest · Right = darkest</div>
+      </div>
+      <div id="pattern-ctrl" style="display:none">
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="chip" onclick="$('pattern-svg-input').click()">Upload SVG</button>
+          <div id="pattern-preview" style="width:32px;height:32px;flex:none"></div>
+          <span id="pattern-name" class="hint" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        </div>
+        <input type="file" id="pattern-svg-input" accept=".svg,image/svg+xml" style="display:none"
+               onchange="loadPatternSVGFile(this.files[0]); this.value=''">
+        <div class="hint" style="margin-top:3px">Shape is tinted per band — set each band's size under "Tonal bands"</div>
       </div>
     </div>
 
@@ -778,25 +701,7 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
   <!-- SVG Fill panel — shown when mode=svgfill, hides sections-wrap -->
   <div id="svgfill-panel" style="display:none;padding:10px 12px;overflow-y:auto;flex:1">
 
-    <div id="svgfill-info">Drop an SVG or image to start</div>
-
-    <!-- Threshold controls — visible for raster images, hidden for SVGs -->
-    <div class="ds" id="mask-threshold-section" style="display:none">
-      <div class="section-label"><span class="section-label-text">Mask threshold</span></div>
-      <div class="slider-row">
-        <span class="slider-lbl">Threshold</span>
-        <input type="range" id="mask-threshold" min="0" max="255" value="128"
-               oninput="sv(this,'mask-thr-val'); buildMaskFromPixels(); debouncedSVGFillRender()">
-        <span class="slider-val" id="mask-thr-val">128</span>
-      </div>
-      <div class="hint">Dark areas → fill shape interior (toggle Invert to flip)</div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#888;margin-top:5px;cursor:pointer">
-        <input type="checkbox" id="mask-invert" style="accent-color:#777"
-               onchange="buildMaskFromPixels();debouncedSVGFillRender()">
-        Invert (light areas → shape)
-      </label>
-      <div id="svgfill-mask-dims" style="font-size:10px;color:#3a3a3a;margin-top:4px">—</div>
-    </div>
+    <div id="svgfill-info">No SVG loaded — drop one in the top area</div>
 
     <div id="svgfill-sections-wrap">
 
@@ -804,18 +709,13 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
     <div class="ds" data-key="svgfill-text">
       <div class="section-label" draggable="true">
         <span class="drag-handle">⠿</span>
-        <span class="section-label-text">Text blocks</span>
+        <span class="section-label-text">Text</span>
       </div>
-      <div id="svgfill-blocks-list"></div>
-      <div class="svgfill-update-row">
-        <button class="svgfill-update-btn" onclick="addSVGFillBlock()">+ Block</button>
-        <button class="svgfill-update-btn" onclick="debouncedSVGFillRender()">⟳ Update</button>
-      </div>
-      <div class="toggle-group" style="margin-bottom:4px">
-        <button class="toggle-btn active" id="fill-order-seq" onclick="setFillOrder('sequential')">Sequence</button>
-        <button class="toggle-btn"        id="fill-order-rnd" onclick="setFillOrder('random')">Random</button>
-      </div>
-      <div class="hint">Select text in a block to style · blocks tile the shape in order or randomly</div>
+    <div id="svgfill-editor" contenteditable="true" spellcheck="false">Current.finance</div>
+    <div class="svgfill-update-row">
+      <button class="svgfill-update-btn" onclick="renderSVGFill()">⟳ Update</button>
+      <span style="font-size:10px;color:#444">Select text to style</span>
+    </div>
     </div><!-- /ds:svgfill-text -->
 
     <!-- Layout: global controls only — text styling lives in the floating tooltip -->
@@ -929,10 +829,6 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
 
     <!-- Flicker controls -->
     <div id="sfa-flicker-ctrl" style="display:none;margin-top:6px">
-      <div class="toggle-group" style="margin-bottom:6px">
-        <button class="toggle-btn active" id="sfa-flk-unit-char"  onclick="setFlickerUnit('char')">Char</button>
-        <button class="toggle-btn"        id="sfa-flk-unit-block" onclick="setFlickerUnit('block')">Block</button>
-      </div>
       <div class="slider-row">
         <span class="slider-lbl">Density</span>
         <input type="range" id="sfa-flk-density" min="1" max="100" value="60"
@@ -1039,7 +935,7 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
     </div>
     <div id="version-switcher">
       <button id="vs-toggle" type="button" class="zoom-btn sm">
-        v: <span id="vs-current">beta</span> ▾
+        v: <span id="vs-current">…</span> ▾
       </button>
       <div id="vs-menu"></div>
     </div>
@@ -1067,15 +963,16 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
   </div>
   <div class="tb-row">
     <span class="tb-lbl">Text</span>
-    <button class="cp-swatch" id="tb-fg-swatch" onclick="_restoreSVGFillRange();openCP('fg',this)" title="Text color" style="background:#f0c040"></button>
-    <input type="text" class="tb-hex cp-flex" id="tb-colorHex" value="#f0c040" maxlength="7" spellcheck="false"
-           oninput="cpHexTyped('fg',this.value)">
-  </div>
-  <div class="tb-row">
-    <span class="tb-lbl">Fill</span>
-    <button class="cp-swatch" id="tb-bg-swatch" onclick="_restoreSVGFillRange();openCP('bg',this)" title="Fill color" style="background:#000000"></button>
-    <input type="text" class="tb-hex cp-flex" id="tb-bgHex" value="#000000" maxlength="7" spellcheck="false"
-           oninput="cpHexTyped('bg',this.value)">
+    <input type="color" class="tb-color" id="tb-color" value="#f0c040"
+           oninput="applyStyleToSelection('color', this.value)">
+    <span class="tb-lbl" style="margin-left:4px">Opa</span>
+    <input type="range" class="tb-range" id="tb-opa" min="0" max="100" value="100"
+           oninput="$('tb-opaN').value=this.value;applyStyleToSelection('opacity', (this.value/100).toString())">
+    <input type="number" class="tb-num" id="tb-opaN" min="0" max="100" step="1" value="100"
+           oninput="$('tb-opa').value=this.value;applyStyleToSelection('opacity', ((parseFloat(this.value)||0)/100).toString())">
+    <span class="tb-lbl" style="margin-left:6px">Fill</span>
+    <input type="color" class="tb-color" id="tb-bg" value="#000000"
+           oninput="applyStyleToSelection('backgroundColor', this.value)">
   </div>
   <div class="tb-row">
     <span class="tb-lbl">Margin</span>
@@ -1125,6 +1022,9 @@ let renderMode = 'phrase', algo = 'bayer', outputMode = 'video', animMode = 'typ
 let zoom = 1, lastRender = null, lastImgInfo = 'No image loaded — drop one to start';
 let currentPalette = 'Newsprint', activeDensityPreset = 'Classic';
 let numBands = 4, bandColors = [], bandOpacities = [], bandModes = [], bandBgEnabled = [], bandBgColors = [], bandMargins = [];
+let bandPatternSizes = [];
+let patternSVG = { svgText: null, maskCanvas: null, aspect: 1, name: '' };
+let patternTintCache = {};
 
 const DECODE_CHARS = '!@#$%^&*ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/?|<>{}~+-='.split('');
 
@@ -1229,6 +1129,7 @@ function getSettings() {
     bandBgEnabled:[...bandBgEnabled],
     bandBgColors: [...bandBgColors],
     bandMargins:  [...bandMargins],
+    bandPatternSizes: [...bandPatternSizes],
   };
 }
 
@@ -1312,11 +1213,12 @@ function initBands(n, palName) {
   bandBgEnabled = Array(n).fill(false);
   bandBgColors  = Array(n).fill('#ffffff');
   bandMargins   = Array(n).fill(parseInt($('cell-margin').value)||0);
+  bandPatternSizes = Array(n).fill(0).map((_,i) => Math.round(20 + (n>1?i/(n-1):0)*70));
   buildBandUI();
 }
 
 function setBandCount(n) {
-  const oldO = [...bandOpacities], oldM = [...bandModes], oldBgE = [...bandBgEnabled], oldBgC = [...bandBgColors], oldMg = [...bandMargins];
+  const oldO = [...bandOpacities], oldM = [...bandModes], oldBgE = [...bandBgEnabled], oldBgC = [...bandBgColors], oldMg = [...bandMargins], oldPs = [...bandPatternSizes];
   numBands = n;
   bandColors    = currentPalette
     ? interpolatePalette(PALETTES[currentPalette], n)
@@ -1326,9 +1228,196 @@ function setBandCount(n) {
   bandBgEnabled = Array(n).fill(0).map((_,i) => oldBgE[i]??false);
   bandBgColors  = Array(n).fill(0).map((_,i) => oldBgC[i]??'#ffffff');
   bandMargins   = Array(n).fill(0).map((_,i) => oldMg[i] ?? (parseInt($('cell-margin').value)||0));
+  bandPatternSizes = Array(n).fill(0).map((_,i) => oldPs[i] ?? Math.round(20 + (n>1?i/(n-1):0)*70));
   [4,6,8,12].forEach(v => $(`bc-${v}`).classList.toggle('active', v===n));
   buildBandUI();
   debouncedRender();
+}
+
+// ─── Pattern unit (SVG stamp) ──────────────────────────────────────────────────
+
+function loadPatternSVGFile(file) {
+  if (!file) return;
+  const name = file.name.toLowerCase();
+  if (file.type !== 'image/svg+xml' && !name.endsWith('.svg')) { alert('Please upload an SVG file.'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    patternSVG.svgText = text;
+    patternSVG.name = file.name;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'image/svg+xml');
+    const svgEl = doc.documentElement;
+    let vw = 0, vh = 0;
+    const vb = svgEl.getAttribute('viewBox');
+    if (vb) { const p = vb.trim().split(/[\s,]+/); vw = parseFloat(p[2]); vh = parseFloat(p[3]); }
+    if (!vw) vw = parseFloat(svgEl.getAttribute('width'))  || 100;
+    if (!vh) vh = parseFloat(svgEl.getAttribute('height')) || 100;
+    patternSVG.aspect = vw / vh || 1;
+
+    // Rasterize the silhouette at a ladder of sizes, each rendered natively by the
+    // SVG rasterizer at that size. Rasterizing once at 256px and shrinking to a
+    // 2-8px stamp averages a thin stroke down to a few percent alpha, so the shape
+    // renders as an almost invisible ghost. Rendering at (or just above) the final
+    // size keeps strokes solid, and the draw-time step-down is then never more
+    // than ~1.5x, which is visually lossless.
+    buildPatternMips(text).then(mips => {
+      if (!mips.length) { alert('Could not read that SVG.'); return; }
+      patternSVG.mips = mips;
+      patternSVG.maskCanvas = mips[mips.length - 1].canvas;  // largest, for preview/fallback
+      patternTintCache = {};
+      updatePatternPreview();
+      debouncedRender();
+    });
+  };
+  reader.readAsText(file);
+}
+
+// Long-side pixel sizes to pre-rasterize. Ratio between neighbours stays <=1.5 so
+// picking the next size up never costs a big downscale.
+const PATTERN_MIP_SIZES = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256];
+
+// Force every visible element to a solid white silhouette (same technique as
+// buildSVGMask) and pin the root width/height so the rasterizer renders at that
+// exact pixel size instead of its intrinsic size.
+function _patternMaskSVG(svgText, w, h) {
+  const styleTag =
+    '<style>*{fill:#fff!important;stroke:#fff!important;stroke-width:2!important;' +
+    'stroke-linejoin:round!important;stroke-linecap:round!important;' +
+    'opacity:1!important;fill-opacity:1!important;stroke-opacity:1!important;' +
+    'visibility:visible!important;display:inline!important}</style>';
+  const m = svgText.match(/<svg\b[^>]*>/i);
+  if (!m) return styleTag + svgText;
+  // Strip any existing width/height (duplicate attrs are invalid XML) then set ours.
+  let tag = m[0]
+    .replace(/\s(?:width|height)\s*=\s*"[^"]*"/gi, '')
+    .replace(/\s(?:width|height)\s*=\s*'[^']*'/gi, '')
+    .replace(/\s*\/?>$/, ` width="${w}" height="${h}">`);
+  return svgText.replace(m[0], tag + styleTag);
+}
+
+function _rasterizePatternAt(svgText, size) {
+  const asp = patternSVG.aspect || 1;
+  const w = asp >= 1 ? size : Math.max(1, Math.round(size * asp));
+  const h = asp >= 1 ? Math.max(1, Math.round(size / asp)) : size;
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(new Blob([_patternMaskSVG(svgText, w, h)], { type: 'image/svg+xml' }));
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve({ s: size, canvas: c });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+function buildPatternMips(svgText) {
+  return Promise.all(PATTERN_MIP_SIZES.map(s => _rasterizePatternAt(svgText, s)))
+    .then(list => list.filter(Boolean).sort((a, b) => a.s - b.s));
+}
+
+// Smallest pre-rasterized level at least as large as the target, so we only ever
+// scale down (and never by more than one ladder step).
+function getPatternMip(targetPx) {
+  const mips = patternSVG.mips;
+  if (!mips || !mips.length) return patternSVG.maskCanvas;
+  for (const m of mips) if (m.s >= targetPx) return m.canvas;
+  return mips[mips.length - 1].canvas;
+}
+
+function updatePatternPreview() {
+  const prev = $('pattern-preview'); if (!prev || !patternSVG.maskCanvas) return;
+  prev.innerHTML = '';
+  const c = document.createElement('canvas');
+  c.width = patternSVG.maskCanvas.width; c.height = patternSVG.maskCanvas.height;
+  c.style.cssText = 'width:32px;height:32px;background:#333;border-radius:3px;display:block';
+  c.getContext('2d').drawImage(patternSVG.maskCanvas, 0, 0);
+  prev.appendChild(c);
+  $('pattern-name').textContent = patternSVG.name;
+}
+
+// Canvas has no mipmapping: a single drawImage() shrinking a large source down to a
+// few px can alias thin shapes away entirely (and identically for every cell in a
+// band, since the sub-pixel alignment repeats every cell). Repeatedly halve instead —
+// each 2x step is a safe reduction — until close to the target, then draw the rest.
+function stepDownCanvas(src, targetW, targetH) {
+  targetW = Math.max(1, Math.round(targetW));
+  targetH = Math.max(1, Math.round(targetH));
+  let cur = src, cw = src.width, ch = src.height;
+  while (cw > targetW * 2 && ch > targetH * 2) {
+    const nw = Math.max(targetW, Math.round(cw / 2));
+    const nh = Math.max(targetH, Math.round(ch / 2));
+    const step = document.createElement('canvas');
+    step.width = nw; step.height = nh;
+    const sx = step.getContext('2d');
+    sx.imageSmoothingEnabled = true; sx.imageSmoothingQuality = 'high';
+    sx.drawImage(cur, 0, 0, nw, nh);
+    cur = step; cw = nw; ch = nh;
+  }
+  if (cw === targetW && ch === targetH) return cur;
+  const final = document.createElement('canvas');
+  final.width = targetW; final.height = targetH;
+  const fx = final.getContext('2d');
+  fx.imageSmoothingEnabled = true; fx.imageSmoothingQuality = 'high';
+  fx.drawImage(cur, 0, 0, targetW, targetH);
+  return final;
+}
+
+// Recolor the cached silhouette for one band and pre-shrink it to ~its actual render
+// size; cached until that band's color/opacity/size changes.
+function getTintedPattern(band, color, opacity, targetW, targetH) {
+  if (!patternSVG.maskCanvas) return null;
+  const tw = Math.max(1, Math.round(targetW)), th = Math.max(1, Math.round(targetH));
+  const cached = patternTintCache[band];
+  if (cached && cached.color === color && cached.opacity === opacity && cached.w === tw && cached.h === th) return cached.canvas;
+  const mc = getPatternMip(Math.max(tw, th));
+  const c = document.createElement('canvas');
+  c.width = mc.width; c.height = mc.height;
+  const cx = c.getContext('2d');
+  cx.drawImage(mc, 0, 0);
+  cx.globalCompositeOperation = 'source-in';
+  cx.fillStyle = hexToRgba(color, opacity);
+  cx.fillRect(0, 0, c.width, c.height);
+  const sized = stepDownCanvas(c, tw, th);
+  patternTintCache[band] = { color, opacity, w: tw, h: th, canvas: sized };
+  return sized;
+}
+
+// Same fill-override technique as the raster mask, but emits an SVG data URI
+// tinted with the real band color. Kept for potential reuse, but exportSVG() uses
+// tintedPatternPNGDataURI() instead — see that function's comment for why.
+function tintedPatternSVGDataURI(color, opacity) {
+  if (!patternSVG.svgText) return null;
+  const styleTag = `<style>*{fill:${color}!important;stroke:${color}!important;` +
+    `fill-opacity:${opacity}!important;stroke-opacity:${opacity}!important}</style>`;
+  let svgText = patternSVG.svgText.replace(/(<svg\b[^>]*>)/i, '$1' + styleTag);
+  if (svgText === patternSVG.svgText) svgText = styleTag + patternSVG.svgText;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
+}
+
+// Tinted PNG raster data URI, for embedding in exported SVG. A nested SVG-in-SVG
+// <image href="data:image/svg+xml..."> renders fine in Chrome/Firefox but many
+// other SVG consumers (Illustrator, Preview, Figma import, Inkscape, Affinity)
+// don't reliably support a nested vector image and silently drop it, leaving
+// exported files looking blank. PNG-in-SVG via <image> has universal support.
+function tintedPatternPNGDataURI(color, opacity, targetPx) {
+  if (!patternSVG.maskCanvas) return null;
+  // Embed at ~2x the size it will be drawn at: crisp when the viewer scales it,
+  // without bloating the file with a 256px raster for an 8px stamp.
+  const mc = targetPx ? getPatternMip(Math.ceil(targetPx * 2)) : patternSVG.maskCanvas;
+  const c = document.createElement('canvas');
+  c.width = mc.width; c.height = mc.height;
+  const cx = c.getContext('2d');
+  cx.drawImage(mc, 0, 0);
+  cx.globalCompositeOperation = 'source-in';
+  cx.fillStyle = hexToRgba(color, opacity);
+  cx.fillRect(0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
 }
 
 function buildBandUI() {
@@ -1337,6 +1426,7 @@ function buildBandUI() {
     const opa = Math.round(bandOpacities[i]*100), bm = bandModes[i];
     const bgOn = bandBgEnabled[i], bgCol = bandBgColors[i] || '#ffffff';
     const bmg = bandMargins[i] ?? 0;
+    const bps = bandPatternSizes[i] ?? Math.round(20 + (numBands>1?i/(numBands-1):0)*70);
     const g = document.createElement('div');
     g.className = 'band-grp'; g.id = `bgrp-${i}`;
     g.innerHTML = `
@@ -1361,6 +1451,13 @@ function buildBandUI() {
         <button class="bm-btn${bm==='block'?' active':''}" data-mode="block" onclick="setBandMode(${i},'block')">Block</button>
         <button class="bm-btn${bm==='both'?' active':''}"  data-mode="both"  onclick="setBandMode(${i},'both')">Both</button>
       </div></div>
+      <div class="bm-row">
+        <span class="bm-lbl">size</span>
+        <input type="range" min="5" max="150" value="${bps}" class="band-pattern-size-slider"
+          style="flex:1;accent-color:#777;cursor:pointer;min-width:0"
+          oninput="bandPatternSizes[${i}]=parseInt(this.value);this.nextElementSibling.textContent=this.value+'%';debouncedRender()">
+        <span class="slider-val">${bps}%</span>
+      </div>
       <div class="bm-row">
         <span class="bm-lbl">fill</span>
         <input type="checkbox" id="band-bg-${i}" ${bgOn?'checked':''} style="accent-color:#777;cursor:pointer;margin:0"
@@ -1412,8 +1509,10 @@ function setMode(m) {
   renderMode = m;
   $('mode-phrase').classList.toggle('active', m==='phrase');
   $('mode-density').classList.toggle('active', m==='density');
+  $('mode-pattern').classList.toggle('active', m==='pattern');
   $('phrase-ctrl').style.display  = m==='phrase'  ? '' : 'none';
   $('density-ctrl').style.display = m==='density' ? '' : 'none';
+  $('pattern-ctrl').style.display = m==='pattern' ? '' : 'none';
   debouncedRender();
 }
 
@@ -1453,26 +1552,8 @@ function loadFile(file) {
     loadSVGFillFile(file);
     return;
   }
-  if (file.type === 'image/gif' || file.type.startsWith('video/')) { loadLiveSource(file); return; }
-
-  // Regular raster image — if currently in textfill mode, threshold to shape mask
-  if (outputMode === 'svgfill') {
-    loadImage(file, () => {
-      svgFill.svgStr = null;  // image mode — no backing SVG
-      $('svgfill-info').textContent = `${file.name} · ${srcCanvas.width}×${srcCanvas.height}px`;
-      const thrSec = $('mask-threshold-section');
-      if (thrSec) thrSec.style.display = ''; // show threshold controls for raster images
-      buildMaskFromPixels();
-      renderSVGFill();
-      $('svgfill-btn-png').disabled = false;
-      $('svgfill-btn-svg').disabled = false;
-      $('sfa-btn-play'  ).disabled = false;
-      $('sfa-btn-rec'   ).disabled = false;
-      $('sfa-btn-pngseq').disabled = false;
-    });
-  } else {
-    loadImage(file);
-  }
+  if (file.type === 'image/gif' || file.type.startsWith('video/')) loadLiveSource(file);
+  else loadImage(file);
 }
 
 function setLiveSourceActive(active) {
@@ -1487,6 +1568,7 @@ function setLiveSourceActive(active) {
 }
 
 function loadLiveSource(file) {
+  if (anim.running) stopAnim(true);   // same stale-snapshot problem as loadImage()
   stopMediaPlay();
   media.frames.forEach(b => b.close?.());
   Object.assign(media, { frames:[], durations:[], frameCount:0, currentFrame:0,
@@ -1636,7 +1718,11 @@ function hideFrameBar() { $('frame-bar').style.display = 'none'; }
 
 function seekToFrame(idx) { stopMediaPlay(); showFrame(idx); }
 
-function loadImage(file, onLoaded) {
+function loadImage(file) {
+  // A running animation owns the canvas and repaints from anim.snap every frame —
+  // if we don't stop it, the new image renders once and is immediately painted
+  // over by the previous image's snapshot, so the upload looks like a no-op.
+  if (anim.running) stopAnim(true);
   setLiveSourceActive(false);
   hideFrameBar();
   media.frames.forEach(b => b.close?.());
@@ -1655,7 +1741,7 @@ function loadImage(file, onLoaded) {
       lastImgInfo = `${img.naturalWidth}×${img.naturalHeight} → ${w}×${h}px`;
       $('tb-info').textContent = lastImgInfo;
       ['btn-png','btn-svg','btn-txt','btn-play','btn-rec','btn-pngseq'].forEach(id => $(id).disabled=false);
-      if (onLoaded) onLoaded(); else render();
+      render();
     };
     img.src = e.target.result;
   };
@@ -1677,6 +1763,28 @@ function getSourcePixels(blurPx, scalePct) {
 }
 
 // ─── Core render ──────────────────────────────────────────────────────────────
+
+// Shared per-cell "glyph" drawer used by render()/animDrawRange()/animDrawDecoding() —
+// draws the block-fill and, on top, either the text char or (Pattern mode) the
+// tinted SVG stamp sized from that band's bandPatternSizes entry.
+function drawGlyph(ctx, s, x, y, inner, ds, band, bc, bm, ch) {
+  if (bm==='block'||bm==='both') { ctx.fillStyle=hexToRgba(bc.color,bc.opacity); ctx.fillRect(x,y,inner,inner); }
+  if ((bm==='text'||bm==='both') && ch && ch!==' ') {
+    const tc = bm==='both' ? s.bands[0] : bc;
+    if (s.mode==='pattern' && patternSVG.maskCanvas) {
+      const cx = x + inner/2, cy = y + inner/2;
+      const box = inner * ((s.bandPatternSizes[band] ?? 60) / 100);
+      const asp = patternSVG.aspect || 1;
+      const pw = asp >= 1 ? box : box * asp;
+      const ph = asp >= 1 ? box / asp : box;
+      const tinted = getTintedPattern(band, tc.color, tc.opacity, pw, ph);
+      if (tinted) ctx.drawImage(tinted, cx - pw/2, cy - ph/2, pw, ph);
+    } else {
+      ctx.fillStyle=hexToRgba(tc.color,tc.opacity);
+      ctx.fillText(ch, x+inner/2, y+inner/2);
+    }
+  }
+}
 
 function render() {
   if (!srcCanvas) return;
@@ -1749,6 +1857,8 @@ function render() {
   if (s.mode==='phrase') {
     let pi=0;
     for (let i=0; i<cols*rows; i++) if(bandGrid[i]>0) { charGrid[i]=phrase[pi%phrase.length]; pi++; }
+  } else if (s.mode==='pattern') {
+    for (let i=0; i<cols*rows; i++) if (bandGrid[i]>0) charGrid[i]='#';
   } else {
     for (let i=0; i<cols*rows; i++) {
       const t=(N>1)?bandGrid[i]/(N-1):0;
@@ -1777,12 +1887,7 @@ function render() {
     const x=col*ds+mg, y=row*ds+mg;
     if (band!==_lastBand) { ctx.font=`bold ${inner}px '${font}',monospace`; _lastBand=band; }
     if (s.bandBgEnabled[band]) { ctx.fillStyle=s.bandBgColors[band]; ctx.fillRect(x,y,inner,inner); }
-    if (bm==='block'||bm==='both') { ctx.fillStyle=hexToRgba(bc.color,bc.opacity); ctx.fillRect(x,y,inner,inner); }
-    if ((bm==='text'||bm==='both')&&ch&&ch!==' ') {
-      const tc=bm==='both'?bands[0]:bc;
-      ctx.fillStyle=hexToRgba(tc.color,tc.opacity);
-      ctx.fillText(ch, x+inner/2, y+inner/2);
-    }
+    drawGlyph(ctx, s, x, y, inner, ds, band, bc, bm, ch);
   }
 
   // 6. Grain
@@ -1944,11 +2049,7 @@ function animDrawRange(start, end, randomChars) {
     const col=i%cols, row=Math.floor(i/cols), x=col*ds+mg, y=row*ds+mg;
     if (band!==_lastBand) { ctx.font=`bold ${inner}px '${font}',monospace`; _lastBand=band; }
     if (bgE[band]) { ctx.fillStyle=bgC[band]; ctx.fillRect(x,y,inner,inner); }
-    if (m==='block'||m==='both') { ctx.fillStyle=hexToRgba(bc.color,bc.opacity); ctx.fillRect(x,y,inner,inner); }
-    if ((m==='text'||m==='both')&&ch&&ch!==' ') {
-      const tc=m==='both'?bands[0]:bc;
-      ctx.fillStyle=hexToRgba(tc.color,tc.opacity); ctx.fillText(ch, x+inner/2, y+inner/2);
-    }
+    drawGlyph(ctx, s, x, y, inner, ds, band, bc, m, ch);
   }
 }
 
@@ -1986,11 +2087,7 @@ function animDrawDecoding(ts) {
       : DECODE_CHARS[Math.floor(Math.random()*DECODE_CHARS.length)];
     if (ts >= endTs) settled.push(i);
     if (bgE[band]) { ctx.fillStyle=bgC[band]; ctx.fillRect(x,y,inner,inner); }
-    if (m==='block'||m==='both') { ctx.fillStyle=hexToRgba(bc.color,bc.opacity); ctx.fillRect(x,y,inner,inner); }
-    if ((m==='text'||m==='both')&&ch&&ch!==' ') {
-      const tc=m==='both'?bands[0]:bc;
-      ctx.fillStyle=hexToRgba(tc.color,tc.opacity); ctx.fillText(ch, x+inner/2, y+inner/2);
-    }
+    drawGlyph(ctx, s, x, y, inner, ds, band, bc, m, ch);
   }
   settled.forEach(i => anim.decode.active.delete(i));
 }
@@ -2144,11 +2241,7 @@ function drawFlickerFull(ts) {
     const col = i%cols, row = Math.floor(i/cols), x = col*ds+mg, y = row*ds+mg;
     if (band!==_lastBand) { ctx.font=`bold ${inner}px '${font}',monospace`; _lastBand=band; }
     if (bgE[band]) { ctx.fillStyle=bgC[band]; ctx.fillRect(x,y,inner,inner); }
-    if (m==='block'||m==='both') { ctx.fillStyle=hexToRgba(bc.color,bc.opacity); ctx.fillRect(x,y,inner,inner); }
-    if ((m==='text'||m==='both')&&ch&&ch!==' ') {
-      const tc = m==='both' ? bands[0] : bc;
-      ctx.fillStyle = hexToRgba(tc.color,tc.opacity); ctx.fillText(ch, x+inner/2, y+inner/2);
-    }
+    drawGlyph(ctx, s, x, y, inner, ds, band, bc, m, ch);
   }
 }
 
@@ -2495,11 +2588,11 @@ function exportSVG() {
   if (!lastRender) return;
   const { cols, rows, cellSize:cs, drawSize:ds, bandGrid, charGrid, settings:s } = lastRender;
   const N=s.numBands, W=cols*ds, H=rows*ds, b0=s.bands[0];
-  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">\n`;
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">\n`;
   svg+=`<rect width="${W}" height="${H}" fill="${b0.color}" fill-opacity="${b0.opacity}"/>\n`;
   for (let band=1; band<N; band++) {
     const bc=s.bands[band], bm=s.bandModes[band];
-    const blocks=[], texts=[];
+    const blocks=[], texts=[], patterns=[];
     for (let row=0; row<rows; row++) for (let col=0; col<cols; col++) {
       const i=row*cols+col; if(bandGrid[i]!==band) continue;
       const x=col*ds, y=row*ds;
@@ -2507,10 +2600,37 @@ function exportSVG() {
       if (bm==='text'||bm==='both') {
         const ch=charGrid[i]; if(!ch||ch===' ') continue;
         const tc=bm==='both'?s.bands[0]:bc;
-        texts.push({x:(x+ds/2).toFixed(1),y:(y+ds/2).toFixed(1),ch:xmlEsc(ch),fill:tc.color,opa:tc.opacity});
+        if (s.mode==='pattern' && patternSVG.svgText) {
+          patterns.push({ cx:x+ds/2, cy:y+ds/2 });
+        } else {
+          texts.push({x:(x+ds/2).toFixed(1),y:(y+ds/2).toFixed(1),ch:xmlEsc(ch),fill:tc.color,opa:tc.opacity});
+        }
       }
     }
     if (blocks.length) svg+=`<g fill="${bc.color}" fill-opacity="${bc.opacity}">\n${blocks.join('\n')}\n</g>\n`;
+    if (patterns.length) {
+      const tc = bm==='both' ? s.bands[0] : bc;
+      const asp = patternSVG.aspect || 1;
+      const mg = Math.round(ds * (s.bandMargins[band]||0) / 100);
+      const inner = ds - mg*2;
+      const box = inner * ((s.bandPatternSizes[band] ?? 60) / 100);
+      const pw = asp >= 1 ? box : box * asp;
+      const ph = asp >= 1 ? box / asp : box;
+      const href = tintedPatternPNGDataURI(tc.color, tc.opacity, Math.max(pw, ph));
+      // Define the (base64-embedded) tinted shape once per band and <use> it per
+      // cell — embedding the full data URI on every instance would blow up file
+      // size to MBs on any image with more than a few hundred ink cells.
+      // Both href and xlink:href: many non-browser SVG consumers (older
+      // Illustrator/Inkscape, various libraries/print pipelines) only resolve
+      // the SVG1.1 xlink:href form and silently drop a bare SVG2 href.
+      const symId = `pat-b${band}`;
+      svg+=`<defs><symbol id="${symId}" viewBox="0 0 100 100" overflow="visible"><image href="${href}" xlink:href="${href}" x="0" y="0" width="100" height="100"/></symbol></defs>\n`;
+      svg+=`<g>\n`;
+      patterns.forEach(p => {
+        svg+=`<use href="#${symId}" xlink:href="#${symId}" x="${(p.cx-pw/2).toFixed(1)}" y="${(p.cy-ph/2).toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}"/>\n`;
+      });
+      svg+=`</g>\n`;
+    }
     if (texts.length) {
       const fa=`font-family="'${s.font}',monospace" font-size="${ds}" font-weight="bold" text-anchor="middle" dominant-baseline="central"`;
       const same=texts.every(t=>t.fill===texts[0].fill&&t.opa===texts[0].opa);
@@ -2640,7 +2760,6 @@ document.addEventListener('keydown', e=>{
   initDrag($('sections-wrap'), 'halftone-section-order');
   // Defer so const declarations later in the script (WEIGHT_TABLE etc.) are initialized
   setTimeout(() => {
-    _initColorPicker();
     initSVGFill();
     restoreCustomFonts();
     const swrap = $('svgfill-sections-wrap');
@@ -2854,7 +2973,6 @@ function initSVGFill() {
   initSVGFillEditor();
   populateSVGFillTextEffects();
   setSVGFillAnimMode('typing');
-  addSVGFillBlock('Current.finance');   // create the initial text block
   applySVGFillEditorPreview();
 }
 
@@ -2862,12 +2980,10 @@ function initSVGFill() {
 // preview the rendered look while typing (only applied where a span hasn't
 // overridden the color itself).
 function applySVGFillEditorPreview() {
-  const color = $('svgfill-textcol').value;
-  const bg    = $('svgfill-bgcol').value;
-  document.querySelectorAll('.svgfill-block-editor').forEach(ed => {
-    ed.style.color           = color;
-    ed.style.backgroundColor = bg;
-  });
+  const ed = $('svgfill-editor');
+  if (!ed) return;
+  ed.style.color           = $('svgfill-textcol').value;
+  ed.style.backgroundColor = $('svgfill-bgcol').value;
 }
 
 function updateSVGFillScaleLabel() {
@@ -2882,114 +2998,17 @@ function updateSVGFillScaleLabel() {
 // ─── Editor + Floating toolbar ────────────────────────────────────────────────
 
 let _svgFillSavedRange = null;
-let svgFillOrder = 'sequential';
-
-// Return the block editor element that contains the saved range (or null)
-function _getActiveEditor() {
-  if (!_svgFillSavedRange) return null;
-  const container = _svgFillSavedRange.commonAncestorContainer;
-  const node = container.nodeType === 3 ? container.parentElement : container;
-  return node ? node.closest('.svgfill-block-editor') : null;
-}
-
-// ── Block management ─────────────────────────────────────────────────────────
-
-function setFillOrder(order) {
-  svgFillOrder = order;
-  const oseq = $('fill-order-seq'), ornd = $('fill-order-rnd');
-  if (oseq) oseq.classList.toggle('active', order === 'sequential');
-  if (ornd) ornd.classList.toggle('active', order === 'random');
-  debouncedSVGFillRender();
-}
-
-// Combine all block char arrays according to the current fill order
-function getAllBlockChars() {
-  const blocks = document.querySelectorAll('.svgfill-block-editor');
-  if (!blocks.length) return [];
-  const arrays = Array.from(blocks).map(el => extractStyledChars(el)).filter(a => a.length);
-  if (!arrays.length) return [];
-  if (arrays.length === 1) return arrays[0];
-
-  if (svgFillOrder === 'sequential') {
-    // Concatenate: shape fills block-1 chars first, then block-2, then repeats
-    return [].concat(...arrays);
-  } else {
-    // Random order: each "round" shuffles block order, but each block runs in full
-    // before the next begins — only the last block in a round can be cropped by the shape edge
-    const total = arrays.reduce((s, a) => s + a.length, 0);
-    const N = Math.max(total * 8, 600); // enough chars for any shape size
-    const result = [];
-    while (result.length < N) {
-      // Fisher-Yates shuffle of block indices for this round
-      const order = arrays.map((_, i) => i);
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
-      }
-      for (const idx of order) result.push(...arrays[idx]);
-    }
-    return result;
-  }
-}
-
-// Create a new text block and append it to the list
-function addSVGFillBlock(initialText) {
-  const list = $('svgfill-blocks-list');
-  if (!list) return null;
-
-  const blockDiv = document.createElement('div');
-  blockDiv.className = 'svgfill-block';
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'svgfill-block-remove';
-  removeBtn.textContent = '×';
-  removeBtn.title = 'Remove block';
-  removeBtn.addEventListener('click', () => {
-    if (list.querySelectorAll('.svgfill-block').length > 1) {
-      blockDiv.remove();
-      debouncedSVGFillRender();
-    }
-  });
-
-  const editor = document.createElement('div');
-  editor.className = 'svgfill-block-editor';
-  editor.contentEditable = 'true';
-  editor.spellcheck = false;
-  editor.textContent = initialText !== undefined ? initialText : 'Text';
-  editor.addEventListener('input', () => debouncedSVGFillRender());
-
-  // Apply current global color preview
-  const col = $('svgfill-textcol'), bg = $('svgfill-bgcol');
-  if (col) editor.style.color           = col.value;
-  if (bg)  editor.style.backgroundColor = bg.value;
-
-  blockDiv.appendChild(removeBtn);
-  blockDiv.appendChild(editor);
-  list.appendChild(blockDiv);
-  return editor;
-}
-
-// ── Toolbar init ─────────────────────────────────────────────────────────────
 
 function initSVGFillEditor() {
+  const ed = $('svgfill-editor');
   const tb = $('svgfill-toolbar');
-
-  // Helper: find which block editor contains the current selection
-  function _edFromSelection() {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return null;
-    const container = sel.getRangeAt(0).commonAncestorContainer;
-    const node = container.nodeType === 3 ? container.parentElement : container;
-    return node?.closest?.('.svgfill-block-editor') || null;
-  }
 
   // Re-position / toggle visibility based on current selection
   function refreshToolbar() {
     const sel = window.getSelection();
-    if (!sel || !sel.rangeCount || sel.isCollapsed) { tb.style.display = 'none'; return; }
+    if (!sel.rangeCount || sel.isCollapsed) { tb.style.display = 'none'; return; }
     const range = sel.getRangeAt(0);
-    const ed = _edFromSelection();
-    if (!ed) { tb.style.display = 'none'; return; }
+    if (!ed.contains(range.commonAncestorContainer)) { tb.style.display = 'none'; return; }
     _svgFillSavedRange = range.cloneRange();
     const rect = range.getBoundingClientRect();
     tb.style.display = 'flex';
@@ -3011,47 +3030,23 @@ function initSVGFillEditor() {
     if (node.nodeType === 3) node = node.parentElement;
     if (!node) return;
     const cs = window.getComputedStyle(node);
-
-    // italic / weight
     $('tb-italic').classList.toggle('active', cs.fontStyle === 'italic');
+    // Sync the weight dropdown to match the selection's current weight
     const w = (cs.fontWeight === 'normal') ? '400' : (cs.fontWeight === 'bold') ? '700' : String(parseInt(cs.fontWeight) || 400);
     const tbW = $('tb-weight');
     if (tbW && Array.from(tbW.options).some(o => o.value === w)) tbW.value = w;
-
-    // text color + opacity
-    if (cs.color) {
-      const { hex: fgHex, alpha: fgAlpha } = _parseColorAlpha(cs.color);
-      $('tb-colorHex').value = fgHex;
-      $('tb-fg-swatch').style.background = fgHex;
-      _cp.fgOpa = Math.round(fgAlpha * 100);
-    }
-
-    // bg color + opacity
-    const bgRaw = cs.backgroundColor;
-    if (bgRaw && bgRaw !== 'transparent' && bgRaw !== 'rgba(0, 0, 0, 0)') {
-      const { hex: bgHex, alpha: bgAlpha } = _parseColorAlpha(bgRaw);
-      $('tb-bgHex').value = bgHex;
-      $('tb-bg-swatch').style.background = bgHex;
-      _cp.bgOpa = Math.round(bgAlpha * 100);
-    }
   }
 
-  // Event delegation — listen at document level, check if target is inside a block editor
-  document.addEventListener('mouseup', e => {
-    if (e.target.closest?.('.svgfill-block-editor')) refreshToolbar();
-  });
-  document.addEventListener('keyup', e => {
-    if (e.target.closest?.('.svgfill-block-editor')) refreshToolbar();
-  });
+  ed.addEventListener('mouseup', refreshToolbar);
+  ed.addEventListener('keyup',   refreshToolbar);
   document.addEventListener('selectionchange', () => {
-    if (document.activeElement?.classList?.contains('svgfill-block-editor')) refreshToolbar();
+    // Only act if focus is inside the editor
+    if (document.activeElement === ed) refreshToolbar();
   });
 
-  // Hide when clicking outside any block editor and outside toolbar
+  // Hide when clicking outside editor + outside toolbar
   document.addEventListener('mousedown', e => {
-    if (!e.target.closest?.('.svgfill-block-editor') && !tb.contains(e.target)) {
-      tb.style.display = 'none';
-    }
+    if (!ed.contains(e.target) && !tb.contains(e.target)) tb.style.display = 'none';
   });
 
   // Hide on scroll inside sidebar
@@ -3069,165 +3064,6 @@ function _restoreSVGFillRange() {
   return _svgFillSavedRange;
 }
 
-// Parse a CSS color string (hex or rgb/rgba) → { hex, alpha }
-function _parseColorAlpha(colorStr) {
-  if (!colorStr || colorStr === 'transparent') return { hex: '#000000', alpha: 0 };
-  if (/^#[0-9a-fA-F]{6}$/.test(colorStr)) return { hex: colorStr, alpha: 1 };
-  const m = colorStr.match(/rgba?\(([^)]+)\)/);
-  if (!m) return { hex: '#000000', alpha: 1 };
-  const parts = m[1].split(',').map(p => parseFloat(p.trim()));
-  const [r, g, b, a = 1] = parts;
-  const h = n => Math.max(0, Math.min(255, n | 0)).toString(16).padStart(2, '0');
-  return { hex: '#' + h(r) + h(g) + h(b), alpha: a };
-}
-
-// ─── Custom Colour Picker ────────────────────────────────────────────────────
-
-const _cp = { target: 'fg', h: 0, s: 1, v: 0.94, opa: 100, fgOpa: 100, bgOpa: 100 };
-
-function _hsvToHex(h, s, v) {
-  const c = v*s, x = c*(1-Math.abs((h/60)%2-1)), m = v-c;
-  let r=0,g=0,b=0;
-  if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
-  else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
-  const n = x => Math.max(0,Math.min(255,Math.round((x+m)*255))).toString(16).padStart(2,'0');
-  return '#'+n(r)+n(g)+n(b);
-}
-function _hexToHsv(hex) {
-  const r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
-  const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
-  let h=0, s=max?d/max:0, v=max;
-  if(d){
-    if(max===r) h=((g-b)/d+6)%6;
-    else if(max===g) h=(b-r)/d+2;
-    else h=(r-g)/d+4;
-    h*=60;
-  }
-  return {h,s,v};
-}
-
-function _cpDrawGradient() {
-  const canvas = $('cp-sv-canvas'); if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  const hg = ctx.createLinearGradient(0,0,w,0);
-  hg.addColorStop(0,'#fff');
-  hg.addColorStop(1,`hsl(${_cp.h},100%,50%)`);
-  ctx.fillStyle = hg; ctx.fillRect(0,0,w,h);
-  const vg = ctx.createLinearGradient(0,0,0,h);
-  vg.addColorStop(0,'transparent'); vg.addColorStop(1,'#000');
-  ctx.fillStyle = vg; ctx.fillRect(0,0,w,h);
-}
-function _cpRefreshUI() {
-  const hex = _hsvToHex(_cp.h, _cp.s, _cp.v);
-  // cursor position
-  const c = $('cp-sv-canvas');
-  if(c){ const csr=$('cp-sv-cursor'); if(csr){ csr.style.left=(_cp.s*c.width)+'px'; csr.style.top=((1-_cp.v)*c.height)+'px'; } }
-  // opacity gradient overlay
-  const og = $('cp-opa-gradient'); if(og) og.style.background=`linear-gradient(to right,transparent,${hex})`;
-  // sliders / inputs
-  const hu=$('cp-hue'),or=$('cp-opa-range'),hi=$('cp-hex-input'),ov=$('cp-opa-val');
-  if(hu) hu.value=Math.round(_cp.h);
-  if(or) or.value=_cp.opa;
-  if(hi) hi.value=hex;
-  if(ov) ov.value=_cp.opa;
-}
-function _cpApply() {
-  const hex = _hsvToHex(_cp.h, _cp.s, _cp.v);
-  const opa = _cp.opa / 100;
-  const val = opa >= 1 ? hex : hexToRgba(hex, opa);
-  if(_cp.target === 'fg'){
-    $('tb-colorHex').value = hex;
-    $('tb-fg-swatch').style.background = hex;
-    _cp.fgOpa = _cp.opa;
-    applyStyleToSelection('color', val);
-  } else {
-    $('tb-bgHex').value = hex;
-    $('tb-bg-swatch').style.background = hex;
-    _cp.bgOpa = _cp.opa;
-    applyStyleToSelection('backgroundColor', val);
-  }
-}
-
-function openCP(target, anchorEl) {
-  _cp.target = target;
-  const hexVal = target === 'fg' ? ($('tb-colorHex').value||'#f0c040') : ($('tb-bgHex').value||'#000000');
-  const clean = /^#[0-9a-fA-F]{6}$/.test(hexVal) ? hexVal : '#808080';
-  const hsv = _hexToHsv(clean);
-  _cp.h = hsv.h; _cp.s = hsv.s; _cp.v = hsv.v;
-  _cp.opa = target === 'fg' ? _cp.fgOpa : _cp.bgOpa;
-  const popup = $('cp-popup');
-  popup.style.display = 'block';
-  _cpDrawGradient(); _cpRefreshUI();
-  // Position popup below/above the swatch
-  const r = anchorEl.getBoundingClientRect();
-  let left = r.left, top = r.bottom + 4;
-  const pw = 212, ph = 230;
-  if(left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-  if(top + ph > window.innerHeight - 8) top = r.top - ph - 4;
-  popup.style.left = left + 'px';
-  popup.style.top  = top  + 'px';
-}
-
-function cpHexTyped(target, val) {
-  if(!/^#[0-9a-fA-F]{6}$/.test(val)) return;
-  const swatch = target === 'fg' ? $('tb-fg-swatch') : $('tb-bg-swatch');
-  if(swatch) swatch.style.background = val;
-  if(target === 'fg') applyStyleToSelection('color', val);
-  else applyStyleToSelection('backgroundColor', val);
-  // keep popup in sync if open
-  if($('cp-popup').style.display !== 'none' && _cp.target === target){
-    const hsv = _hexToHsv(val); _cp.h=hsv.h; _cp.s=hsv.s; _cp.v=hsv.v;
-    _cpDrawGradient(); _cpRefreshUI();
-  }
-}
-
-function _initColorPicker() {
-  let _svDrag = false;
-  function _svPick(e) {
-    const canvas = $('cp-sv-canvas');
-    const rect = canvas.getBoundingClientRect();
-    const cx = e.touches ? e.touches[0].clientX : e.clientX;
-    const cy = e.touches ? e.touches[0].clientY : e.clientY;
-    _cp.s = Math.max(0,Math.min(1,(cx-rect.left)/rect.width));
-    _cp.v = Math.max(0,Math.min(1,1-(cy-rect.top)/rect.height));
-    _cpDrawGradient(); _cpRefreshUI(); _cpApply();
-  }
-  $('cp-sv-wrap').addEventListener('mousedown', e=>{ _svDrag=true; _svPick(e); e.preventDefault(); });
-  document.addEventListener('mousemove', e=>{ if(_svDrag){ _svPick(e); e.preventDefault(); } });
-  document.addEventListener('mouseup',   ()=>{ _svDrag=false; });
-
-  $('cp-hue').addEventListener('input', ()=>{
-    _cp.h = parseFloat($('cp-hue').value);
-    _cpDrawGradient(); _cpRefreshUI(); _cpApply();
-  });
-  $('cp-opa-range').addEventListener('input', ()=>{
-    _cp.opa = parseInt($('cp-opa-range').value);
-    $('cp-opa-val').value = _cp.opa;
-    _cpApply();
-  });
-  $('cp-opa-val').addEventListener('input', ()=>{
-    _cp.opa = Math.max(0,Math.min(100,parseInt($('cp-opa-val').value)||0));
-    $('cp-opa-range').value = _cp.opa;
-    _cpApply();
-  });
-  $('cp-hex-input').addEventListener('input', ()=>{
-    const v = $('cp-hex-input').value;
-    if(!/^#[0-9a-fA-F]{6}$/.test(v)) return;
-    const hsv=_hexToHsv(v); _cp.h=hsv.h; _cp.s=hsv.s; _cp.v=hsv.v;
-    _cpDrawGradient(); _cpRefreshUI(); _cpApply();
-    if(_cp.target==='fg') $('tb-colorHex').value=v;
-    else $('tb-bgHex').value=v;
-  });
-  // Close on outside click (but not on swatches or the popup itself)
-  document.addEventListener('mousedown', e=>{
-    const popup = $('cp-popup');
-    if(popup.style.display==='none') return;
-    if(!popup.contains(e.target) && !e.target.classList.contains('cp-swatch'))
-      popup.style.display='none';
-  });
-}
-
 // Apply one or more inline styles to the saved selection.
 // Signatures:
 //   applyStyleToSelection('color', '#ff0000')
@@ -3241,8 +3077,7 @@ function applyStyleToSelection(propOrObj, value) {
   const styles = (typeof propOrObj === 'string') ? { [propOrObj]: value } : propOrObj;
   const propKeys = Object.keys(styles);
 
-  const ed = _getActiveEditor();
-  if (!ed) return;
+  const ed = $('svgfill-editor');
   // Remember whatever input/control had focus (e.g., the toolbar number input)
   // so we can restore focus after sel.addRange() — which would otherwise pull
   // focus into the editor and route subsequent keystrokes there.
@@ -3336,8 +3171,7 @@ function toggleStyleOnSelection(prop, onVal, offVal) {
 
 // Strip inline styles from elements in the selection
 function clearSelectionStyle() {
-  const ed = _getActiveEditor();
-  if (!ed) return;
+  const ed = $('svgfill-editor');
   const range = _restoreSVGFillRange();
   if (!range || range.collapsed) return;
   if (!ed.contains(range.commonAncestorContainer)) return;
@@ -3362,10 +3196,9 @@ function clearSelectionStyle() {
   _svgFillSavedRange = r.cloneRange();
 }
 
-// Walk editor DOM → flat [{char, style},...]. Accepts a specific editor element,
-// or falls back to #svgfill-editor for backward compatibility.
-function extractStyledChars(editorEl) {
-  const ed = editorEl || $('svgfill-editor');
+// Walk editor DOM → flat [{char, style},...]
+function extractStyledChars() {
+  const ed = $('svgfill-editor');
   const defaults = {
     fontFamily: 'Courier New',
     fontSize:   16,
@@ -3374,7 +3207,6 @@ function extractStyledChars(editorEl) {
     color:      $('svgfill-textcol').value,
     opacity:    parseInt($('svgfill-textopa').value) / 100,
     bgColor:    null,
-    bgOpacity:  1,
     marginH:    parseFloat($('svgfill-gridmgN').value) || parseFloat($('svgfill-gridmg').value) || 0,
   };
   const out = [];
@@ -3387,11 +3219,7 @@ function extractStyledChars(editorEl) {
     if (s.fontStyle)       next.fontStyle  = s.fontStyle;
     if (s.color)           next.color      = rgbStrToHex(s.color);
     if (s.opacity !== '')  next.opacity    = parseFloat(s.opacity);
-    if (s.backgroundColor && s.backgroundColor !== 'transparent') {
-      const parsed = _parseColorAlpha(s.backgroundColor);
-      next.bgColor   = parsed.hex;
-      next.bgOpacity = parsed.alpha;
-    }
+    if (s.backgroundColor) next.bgColor    = rgbStrToHex(s.backgroundColor);
     if (s.paddingLeft)     next.marginH    = parseFloat(s.paddingLeft);
     return next;
   }
@@ -3439,7 +3267,7 @@ function measureCharBox(c, tracking, measureCtx) {
 function drawStyledCell(ctx, c, x, y, w, rowH) {
   // bg fill covers the full cell (no vertical inset)
   if (c.bgColor) {
-    ctx.fillStyle = hexToRgba(c.bgColor, c.bgOpacity ?? 1);
+    ctx.fillStyle = hexToRgba(c.bgColor, c.opacity);
     ctx.fillRect(x, y, w, rowH);
   }
   // glyph
@@ -3470,9 +3298,7 @@ async function loadSVGFillFile(file) {
   if (!vw) vw = parseFloat(svgEl.getAttribute('width'))  || 800;
   if (!vh) vh = parseFloat(svgEl.getAttribute('height')) || 600;
   svgFill.viewW = vw; svgFill.viewH = vh;
-  $('svgfill-info').textContent = `${file.name} · ${Math.round(vw)}×${Math.round(vh)} (SVG)`;
-  const thrSec = $('mask-threshold-section');
-  if (thrSec) thrSec.style.display = 'none'; // threshold only applies to raster images
+  $('svgfill-info').textContent = `${file.name} · ${Math.round(vw)}×${Math.round(vh)}`;
   updateSVGFillScaleLabel();
 
   // Build mask: render SVG to offscreen canvas
@@ -3541,64 +3367,6 @@ function svgFillInside(x, y) {
   return svgFill.maskData[idx + 3] > 20;
 }
 
-// Build a binary mask from the currently loaded source image (pixel brightness threshold).
-// Dark pixels become the "inside" of the fill shape; light pixels are outside.
-// Only runs in image mode (svgFill.svgStr must be null).
-function buildMaskFromPixels() {
-  if (!srcCanvas || svgFill.svgStr) return; // image mode only; SVG mode uses buildSVGMask
-  const s = getSettings();
-  const { blur, scale, brightness, contrast, invert, blackPt, whitePt } = s;
-  const { data: srcPx, w: sw, h: sh } = getSourcePixels(blur, scale);
-
-  const thr = $('mask-threshold');
-  const threshold  = thr ? (parseInt(thr.value) || 128) : 128;
-  const lumRange   = Math.max(1, whitePt - blackPt);
-  const brightnessF = brightness / 100;
-  const contrastF   = contrast / 100;
-
-  // Build mask at source resolution, capped at 1400px on the longest side
-  const maskScale = Math.min(1, 1400 / Math.max(sw, sh));
-  const mw = Math.round(sw * maskScale);
-  const mh = Math.round(sh * maskScale);
-
-  // Put processed pixels onto a temporary canvas, then downsample to mask resolution
-  const tmpC = document.createElement('canvas');
-  tmpC.width = sw; tmpC.height = sh;
-  const tmpCtx = tmpC.getContext('2d');
-  const imgData = tmpCtx.createImageData(sw, sh);
-  imgData.data.set(srcPx);
-  tmpCtx.putImageData(imgData, 0, 0);
-
-  const mc = document.createElement('canvas');
-  mc.width = mw; mc.height = mh;
-  const mx = mc.getContext('2d');
-  mx.drawImage(tmpC, 0, 0, mw, mh);
-  const maskPixels = mx.getImageData(0, 0, mw, mh);
-
-  const maskInvert = $('mask-invert') ? $('mask-invert').checked : false;
-  const maskData = new Uint8ClampedArray(mw * mh * 4);
-  for (let i = 0; i < mw * mh; i++) {
-    const k = i * 4;
-    let lum = 0.299 * maskPixels.data[k] + 0.587 * maskPixels.data[k + 1] + 0.114 * maskPixels.data[k + 2];
-    lum = clamp(((lum - blackPt) / lumRange) * 255, 0, 255);
-    lum = clamp(lum * brightnessF, 0, 255);
-    lum = clamp((lum - 128) * contrastF + 128, 0, 255);
-    if (invert) lum = 255 - lum;
-    // Dark pixel → inside shape; mask-invert flips so light areas become the shape
-    maskData[k + 3] = (lum < threshold) !== maskInvert ? 255 : 0;
-  }
-
-  svgFill.maskData   = maskData;
-  svgFill.maskW      = mw;
-  svgFill.maskH      = mh;
-  svgFill._maskScale = maskScale;
-  svgFill.viewW      = sw;
-  svgFill.viewH      = sh;
-
-  const dimsEl = $('svgfill-mask-dims');
-  if (dimsEl) dimsEl.textContent = mw + ' × ' + mh + ' px';
-}
-
 // Read all SVG Fill layout settings together — keeps render + export + anim aligned
 function _readSVGFillLayout() {
   return {
@@ -3619,7 +3387,7 @@ function svgFillComputeLayout() {
   const vh = svgFill.viewH * L.svgScale;
   const ow = Math.round(vw * L.outScale);
   const oh = Math.round(vh * L.outScale);
-  const chars = getAllBlockChars();
+  const chars = extractStyledChars();
   const cells = [];
   if (!chars.length) return { cells, vw, vh, ow, oh, chars, ...L };
 
@@ -3655,8 +3423,7 @@ function svgFillComputeLayout() {
 }
 
 function renderSVGFill() {
-  if (outputMode !== 'svgfill') return;
-  if (!svgFill.svgStr && !svgFill.maskData) return;
+  if (!svgFill.svgStr || outputMode !== 'svgfill') return;
   if (svgFillAnim && svgFillAnim.running) return; // animation owns the canvas while running
 
   const layout = svgFillComputeLayout();
@@ -3702,7 +3469,7 @@ function exportSVGFillSVG() {
   for (const cell of cells) {
     const { x, y, w, rowH: h, char: c } = cell;
     if (c.bgColor) {
-      elems += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${toRGBA(c.bgColor, c.bgOpacity ?? 1)}"/>\n`;
+      elems += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${toRGBA(c.bgColor, c.opacity)}"/>\n`;
     }
     const attrs = [
       `x="${(x + w / 2).toFixed(1)}"`,
@@ -3796,7 +3563,6 @@ const svgFillAnim = {
   decodeActive: new Map(),    // cellIdx → endTs
   effectName: 'None', effectMs: 400,
   entryStart: new Map(),      // cellIdx → ts at first reveal
-  flickerUnit: 'char',         // 'char' | 'block'
   flicker: { cellOn: null, cellTimers: null, cellRates: null, reseedTimer: 0 },
   recorder: null, chunks: [],
   layout: null, ctx: null,
@@ -3822,12 +3588,6 @@ function setSVGFillAnimMode(m) {
   $('sfa-flicker-ctrl').style.display = m === 'flicker' ? '' : 'none';
   const showRec = (m === 'flicker') || (m === 'typing' && $('sfa-loop').checked);
   $('sfa-recdur-row').style.display = showRec ? '' : 'none';
-}
-
-function setFlickerUnit(u) {
-  svgFillAnim.flickerUnit = u;
-  $('sfa-flk-unit-char' ).classList.toggle('active', u === 'char');
-  $('sfa-flk-unit-block').classList.toggle('active', u === 'block');
 }
 
 function setSVGFillAnimOrder(o) {
@@ -4091,87 +3851,37 @@ function svgFillAnimFrame(ts) {
 }
 
 function svgFillInitFlicker() {
-  const total    = svgFillAnim.cells.length;
-  const density  = parseInt($('sfa-flk-density').value) / 100;
-  const slowHz   = parseInt($('sfa-flk-slow').value) / 4;
-  const fastHz   = Math.max(slowHz, parseInt($('sfa-flk-fast').value) / 4);
-  const cycleS   = parseFloat($('sfa-flk-cycle').value);
-  const byBlock  = svgFillAnim.flickerUnit === 'block';
+  const total = svgFillAnim.cells.length;
+  const density = parseInt($('sfa-flk-density').value) / 100;
+  const slowHz  = parseInt($('sfa-flk-slow').value) / 4;
+  const fastHz  = Math.max(slowHz, parseInt($('sfa-flk-fast').value) / 4);
+  const cycleS  = parseFloat($('sfa-flk-cycle').value);
   const F = svgFillAnim.flicker;
-  if (!F.cellTimers || F.cellTimers.length !== total) {
-    F.cellTimers = new Float32Array(total);
-    F.cellRates  = new Float32Array(total);
-    F.cellOn     = new Uint8Array(total);
-  }
+  F.cellTimers = new Float32Array(total);
+  F.cellRates  = new Float32Array(total);
+  F.cellOn     = new Uint8Array(total);
   F.reseedTimer = cycleS * 1000;
 
-  // All cells start ON — image is fully visible at t=0.
-  for (let i = 0; i < total; i++) F.cellOn[i] = 1;
+  const indices = [];
+  for (let i = 0; i < total; i++) indices.push(i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const count  = Math.max(1, Math.round(total * density));
+  const chosen = new Set(indices.slice(0, count));
 
-  if (byBlock) {
-    // ── Block mode: whole phrase-repetitions flicker together ─────────────
-    const pLen     = svgFillAnim.phraseLen || 1;
-    const numBlocks = Math.ceil(total / pLen);
-    // Shuffle block indices, then pick density% of them to flicker
-    const bIdx = Array.from({ length: numBlocks }, (_, b) => b);
-    for (let i = bIdx.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [bIdx[i], bIdx[j]] = [bIdx[j], bIdx[i]];
-    }
-    const flickCount = Math.max(1, Math.round(numBlocks * density));
-    const chosen = new Set(bIdx.slice(0, flickCount));
-
-    for (let b = 0; b < numBlocks; b++) {
-      const start = b * pLen;
-      const end   = Math.min(start + pLen, total);
-      if (chosen.has(b)) {
-        const hz   = slowHz + Math.random() * (fastHz - slowHz);
-        const rate = 1000 / hz;
-        // All cells in the block share the same timer so they fire together
-        const timer = Math.random() * rate;
-        for (let i = start; i < end; i++) {
-          F.cellRates[i]  = rate;
-          F.cellTimers[i] = timer;
-        }
-      } else {
-        for (let i = start; i < end; i++) {
-          F.cellRates[i]  = 0;
-          F.cellTimers[i] = 0;
-        }
-      }
-    }
-  } else {
-    // ── Char mode: individual cells flicker independently ─────────────────
-    const indices = Array.from({ length: total }, (_, i) => i);
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
-    }
-    const count  = Math.max(1, Math.round(total * density));
-    const chosen = new Set(indices.slice(0, count));
-    for (let i = 0; i < total; i++) {
-      if (chosen.has(i)) {
-        const hz = slowHz + Math.random() * (fastHz - slowHz);
-        F.cellRates[i]  = 1000 / hz;
-        F.cellTimers[i] = Math.random() * F.cellRates[i];
-      } else {
-        F.cellRates[i]  = 0;
-        F.cellTimers[i] = 0;
-      }
+  for (let i = 0; i < total; i++) {
+    if (chosen.has(i)) {
+      const hz = slowHz + Math.random() * (fastHz - slowHz);
+      F.cellRates[i]  = 1000 / hz;
+      F.cellTimers[i] = Math.random() * F.cellRates[i];
+      F.cellOn[i]     = Math.random() < 0.5 ? 1 : 0;
+    } else {
+      F.cellRates[i] = 0;
+      F.cellOn[i]    = 1;
     }
   }
-}
-
-// Rebuild the base canvas so it matches the current cellOn state.
-// Called at animation start and after each reseed cycle.
-function _svgFillSyncFlickerBase() {
-  _svgFillInitBaseCanvas(svgFillAnim.layout);
-  const F = svgFillAnim.flicker, cells = svgFillAnim.cells;
-  for (let i = 0; i < cells.length; i++) {
-    if (F.cellOn[i]) _svgFillCommitCellToBase(cells[i]);
-  }
-  svgFillAnim.entryStart.clear();
-  svgFillAnim.decodeActive.clear();
 }
 
 function svgFillFlickerFrame(ts) {
@@ -4186,12 +3896,7 @@ function svgFillFlickerFrame(ts) {
   const total = cells.length;
 
   F.reseedTimer -= dt;
-  if (F.reseedTimer <= 0) {
-    // Pick a new set of flickering cells and rebuild the base canvas so
-    // all cells are visible again before the next flicker cycle begins.
-    svgFillInitFlicker();
-    _svgFillSyncFlickerBase();
-  }
+  if (F.reseedTimer <= 0) svgFillInitFlicker();
 
   // Process state flips. When a cell turns OFF, erase from base. When ON,
   // queue an entry effect (will be drawn on top of the base each frame, then
@@ -4267,12 +3972,12 @@ function svgFillFlickerFrame(ts) {
 }
 
 function startSVGFillAnimation(forRecord) {
-  if (!svgFill.svgStr && !svgFill.maskData) return;
+  if (!svgFill.svgStr) return;
   const layout = svgFillComputeLayout();
   if (!layout.cells.length) { alert('No cells to animate. Load an SVG and add text.'); return; }
 
   svgFillAnim.layout = layout;
-  const phraseLen = getAllBlockChars().length || 1;
+  const phraseLen = extractStyledChars().length || 1;
   svgFillAnim.phraseLen   = phraseLen;
   svgFillAnim.stepSize    = (svgFillAnim.revealUnit === 'block') ? phraseLen : 1;
   svgFillAnim.intraStagger = (svgFillAnim.revealUnit === 'block')
@@ -4301,10 +4006,14 @@ function startSVGFillAnimation(forRecord) {
   svgFillAnim.ctx = ctx;
   _svgFillInitBaseCanvas(layout);  // base = bg only; cells get committed as they settle
 
-  // For flicker mode: all cells start ON, base canvas holds the full image.
+  // For flicker mode, commit all non-flickering cells to the base canvas
   if (svgFillAnim.mode === 'flicker') {
     svgFillInitFlicker();
-    _svgFillSyncFlickerBase();  // commits every cellOn=1 cell (all of them at t=0)
+    for (let i = 0; i < svgFillAnim.cells.length; i++) {
+      if (svgFillAnim.flicker.cellRates[i] === 0 && svgFillAnim.flicker.cellOn[i]) {
+        _svgFillCommitCellToBase(svgFillAnim.cells[i]);
+      }
+    }
   }
   // Initial paint reflects the base
   _svgFillBlitBase(ctx);
@@ -4376,7 +4085,7 @@ function previewSVGFillAnim() { startSVGFillAnimation(false); }
 function recordSVGFillAnim () { startSVGFillAnimation(true ); }
 
 async function exportSVGFillPNGSeq() {
-  if (!svgFill.svgStr && !svgFill.maskData) return;
+  if (!svgFill.svgStr) return;
   const layout = svgFillComputeLayout();
   if (!layout.cells.length) return;
 
@@ -4387,7 +4096,7 @@ async function exportSVGFillPNGSeq() {
   ctx.scale(layout.outScale, layout.outScale);
   _svgFillPaintBg(ctx, layout);
 
-  const _phraseLen = getAllBlockChars().length || 1;
+  const _phraseLen = extractStyledChars().length || 1;
   const cells = _svgFillOrderCells(layout.cells, svgFillAnim.order,
     { phraseLen: _phraseLen, revealUnit: svgFillAnim.revealUnit });
   const speed = parseInt($('sfa-speed').value);
@@ -4441,8 +4150,9 @@ async function exportSVGFillPNGSeq() {
 </script>
 
 <!-- ── Version switcher bootstrap script ───────────────────────────────────────
-     The button + menu HTML lives inside #toolbar (top bar). This script
-     fetches /versions/manifest.json and populates the dropdown. -->
+     The button + menu HTML lives inside #toolbar (top bar). Each version lives at
+     versions/<dir>/halftone.html; this script reads versions/manifest.json
+     (one level up) and lists every version in the dropdown. -->
 <script>
 (async () => {
   const sw   = document.getElementById('version-switcher');
@@ -4450,94 +4160,42 @@ async function exportSVGFillPNGSeq() {
   const menu = document.getElementById('vs-menu');
   const cur  = document.getElementById('vs-current');
 
-  // Resolve base path
-  const isInVersions = /\/versions\//.test(location.pathname);
-  const baseHref     = isInVersions ? '../' : '';
-  const filename     = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  // This file is versions/<dir>/halftone.html → current dir = parent folder name
+  const parts  = location.pathname.split('/').filter(Boolean);
+  const curDir = (parts[parts.length - 2] || '').toLowerCase();
 
-  // Fixed version list: beta (new pipeline UI) + V1 (this file, original stable)
-  const items = [
-    { name: 'beta', href: baseHref + 'beta.html',  file: 'beta.html',  note: 'Pipeline UI' },
-    { name: 'V1',   href: baseHref + 'index.html', file: 'index.html', note: 'Stable · 2026-05-19' },
-  ];
-
-  // Also pull any extra archived versions from manifest
+  let items = [];
   try {
-    const res = await fetch(baseHref + 'versions/manifest.json', { cache: 'no-store' });
-    if (res.ok) {
-      const extras = await res.json();
-      for (const v of extras) {
-        if (v.file && v.file.toLowerCase() !== 'v1.html') {
-          items.push({ name: v.name, href: baseHref + 'versions/' + v.file,
-                       file: v.file.toLowerCase(), note: v.savedAt });
-        }
-      }
-    }
+    const res = await fetch('../manifest.json', { cache: 'no-store' });
+    if (res.ok) items = (await res.json()).map(v => ({
+      name: v.name, href: '../' + v.dir + '/halftone.html',
+      dir: v.dir.toLowerCase(), note: [v.savedAt, v.note].filter(Boolean).join(' · '),
+    }));
   } catch {}
+  if (!items.length) items = [{ name: curDir || '?', href: 'halftone.html', dir: curDir, note: '' }];
 
-  // Determine current page
-  let currentItem = items.find(i => i.file === filename) || items[1]; // default V1
+  const currentItem = items.find(i => i.dir === curDir) || items[items.length - 1];
   cur.textContent = currentItem.name;
 
-  // Build menu
   for (const it of items) {
     const a = document.createElement('a');
     a.href = it.href;
     const isCur = it === currentItem;
     if (isCur) a.classList.add('vs-current');
     a.textContent = it.name + (isCur ? '   ●' : '');
-    a.title = it.note || '';
+    a.title = it.note;
     menu.appendChild(a);
   }
 
   btn.addEventListener('click', e => {
     e.stopPropagation();
-    const isOpen = menu.style.display === 'block';
-    menu.style.display = isOpen ? 'none' : 'block';
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
   });
   document.addEventListener('mousedown', e => {
     if (!sw.contains(e.target)) menu.style.display = 'none';
   });
-
-  // When running as a blob: URL (loaded from image-processing.html), regular
-  // relative href links don't resolve correctly. Intercept clicks on "beta"
-  // and navigate back to the host page with a hash so it stays on beta.
-  if (location.protocol === 'blob:') {
-    menu.addEventListener('click', e => {
-      const a = e.target.closest('a');
-      if (!a) return;
-      const name = (a.textContent.trim().match(/^\S+/) || [''])[0].toLowerCase();
-      if (name === 'beta') {
-        e.preventDefault();
-        menu.style.display = 'none';
-        const home = sessionStorage.getItem('__ip_home');
-        if (home) location.href = home.replace(/#.*/, '') + '#from_v1';
-      }
-    });
-  }
 })();
 </script>
-
-<!-- ── Custom colour picker popup ───────────────────────────────────────────── -->
-<div id="cp-popup">
-  <div id="cp-sv-wrap">
-    <canvas id="cp-sv-canvas" width="172" height="120"></canvas>
-    <div id="cp-sv-cursor"></div>
-  </div>
-  <div class="cp-track" id="cp-hue-track">
-    <input type="range" id="cp-hue" min="0" max="359" step="1" value="0">
-  </div>
-  <div class="cp-track" id="cp-opa-track">
-    <div id="cp-opa-checker"></div>
-    <div id="cp-opa-gradient"></div>
-    <input type="range" id="cp-opa-range" min="0" max="100" step="1" value="100">
-  </div>
-  <div class="cp-bottom">
-    <input type="text" id="cp-hex-input" maxlength="7" spellcheck="false" placeholder="#rrggbb">
-    <input type="number" id="cp-opa-val" min="0" max="100" step="1" value="100">
-    <span id="cp-opa-pct">%</span>
-  </div>
-</div>
 
 </body>
 </html>
