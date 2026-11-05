@@ -19,6 +19,7 @@ halftone/
 ├── index.html            → redirects to the current version
 ├── AGENTS.md             → instructions for AI agents (start here)
 ├── CHANGELOG.md
+├── sync-to-github.sh    → push to GitHub (Design-Tools/Halftone Tool)
 └── versions/
     ├── manifest.json     → version list (feeds the in-app "v:" switcher)
     ├── v1/  halftone.html + CONTEXT.md
@@ -38,3 +39,8 @@ into any AI chat to bring that chat up to speed.
 
 Each version is also a git tag (`git checkout v1`). The tag `pre-cleanup`
 holds the old loose copies (`index.html`, `beta.html`, `image-processing.html`).
+
+## GitHub
+
+This folder is mirrored to [Surfer988/Design-Tools → `Halftone Tool/`](https://github.com/Surfer988/Design-Tools/tree/main/Halftone%20Tool).
+After committing here, run `./sync-to-github.sh`. Tags are pushed with a `halftone-` prefix.
