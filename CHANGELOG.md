@@ -11,6 +11,8 @@ New **Stippling** tab (image → bars):
 - Exports: PNG, SVG, WebM, PNG sequence.
 - Snap to edges: sections break at the threshold outline and at tone-level changes (Edge levels), and are pinned to the stronger edge, so outlines stay crisp in photos too.
 - Cubic-bezier curve editors for the Stagger, Per-bar (grow / flicker-in) and Motion (wave / random) timing, with presets and draggable handles.
+- Click any slider's value to type an exact number (all tabs).
+- All colour swatches open the app's hex picker (with an eyedropper) instead of the browser's RGB one.
 - Switching tabs now stops the other tabs' animations.
 - Fixed a boot race where the colour picker could initialise before its HTML was parsed.
 

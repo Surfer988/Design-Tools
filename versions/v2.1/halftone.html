@@ -385,6 +385,19 @@ input[type=color] {
   font-family: inherit; outline: none;
 }
 #cp-opa-pct { font-size: 10px; color: #555; }
+/* Plain colour inputs (no alpha) use the same popup without the opacity controls */
+#cp-popup.cp-solid #cp-opa-track, #cp-popup.cp-solid #cp-opa-val, #cp-popup.cp-solid #cp-opa-pct { display: none; }
+#cp-eyedrop {
+  background: #141414; border: 1px solid #333; color: #aaa; border-radius: 3px;
+  width: 24px; height: 22px; padding: 0; cursor: pointer; font-size: 12px; line-height: 1;
+}
+#cp-eyedrop:hover { color: #fff; border-color: #555; }
+/* Slider value labels: click to type a number */
+.slider-val { cursor: text; border-radius: 3px; }
+.slider-val:hover { color: #ccc; background: #262626; }
+.slider-val[contenteditable="true"] {
+  color: #fff; background: #141414; outline: 1px solid #555; cursor: text;
+}
 .tb-clear { background: #2a1e1e; color: #c08080; border-color: #4a3030; }
 .tb-clear:hover { background: #3a2424; color: #ffaaaa; }
 
@@ -3650,6 +3663,15 @@ function _cpApply() {
   const hex = _hsvToHex(_cp.h, _cp.s, _cp.v);
   const opa = _cp.opa / 100;
   const val = opa >= 1 ? hex : hexToRgba(hex, opa);
+  if(_cp.target instanceof HTMLInputElement){
+    // a plain <input type="color">: write the hex back and fire its own handlers
+    if(_cp.target.value !== hex){
+      _cp.target.value = hex;
+      _cp.target.dispatchEvent(new Event('input', { bubbles: true }));
+      _cp.target.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    return;
+  }
   if(_cp.target === 'fg'){
     $('tb-colorHex').value = hex;
     $('tb-fg-swatch').style.background = hex;
@@ -3665,18 +3687,21 @@ function _cpApply() {
 
 function openCP(target, anchorEl) {
   _cp.target = target;
-  const hexVal = target === 'fg' ? ($('tb-colorHex').value||'#f0c040') : ($('tb-bgHex').value||'#000000');
+  const solid = target instanceof HTMLInputElement;   // plain colour input, no alpha
+  const hexVal = solid ? target.value
+               : target === 'fg' ? ($('tb-colorHex').value||'#f0c040') : ($('tb-bgHex').value||'#000000');
   const clean = /^#[0-9a-fA-F]{6}$/.test(hexVal) ? hexVal : '#808080';
   const hsv = _hexToHsv(clean);
   _cp.h = hsv.h; _cp.s = hsv.s; _cp.v = hsv.v;
-  _cp.opa = target === 'fg' ? _cp.fgOpa : _cp.bgOpa;
+  _cp.opa = solid ? 100 : target === 'fg' ? _cp.fgOpa : _cp.bgOpa;
   const popup = $('cp-popup');
+  popup.classList.toggle('cp-solid', solid);
   popup.style.display = 'block';
   _cpDrawGradient(); _cpRefreshUI();
   // Position popup below/above the swatch
   const r = anchorEl.getBoundingClientRect();
   let left = r.left, top = r.bottom + 4;
-  const pw = 212, ph = 230;
+  const pw = 212, ph = solid ? 200 : 230;
   if(left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
   if(top + ph > window.innerHeight - 8) top = r.top - ph - 4;
   popup.style.left = left + 'px';
@@ -3731,16 +3756,119 @@ function _initColorPicker() {
     const hsv=_hexToHsv(v); _cp.h=hsv.h; _cp.s=hsv.s; _cp.v=hsv.v;
     _cpDrawGradient(); _cpRefreshUI(); _cpApply();
     if(_cp.target==='fg') $('tb-colorHex').value=v;
-    else $('tb-bgHex').value=v;
+    else if(_cp.target==='bg') $('tb-bgHex').value=v;
   });
-  // Close on outside click (but not on swatches or the popup itself)
+  // also accept hex typed without "#", applied on Enter / blur
+  $('cp-hex-input').addEventListener('change', ()=>{
+    let v = $('cp-hex-input').value.trim().replace(/^#?/, '#');
+    if(/^#[0-9a-fA-F]{3}$/.test(v)) v = '#' + v.slice(1).split('').map(c=>c+c).join('');
+    if(!/^#[0-9a-fA-F]{6}$/.test(v)){ _cpRefreshUI(); return; }
+    $('cp-hex-input').value = v.toLowerCase();
+    $('cp-hex-input').dispatchEvent(new Event('input'));
+  });
+  $('cp-hex-input').addEventListener('keydown', e=>{ if(e.key==='Enter') e.target.blur(); });
+  // Eyedropper (Chromium's EyeDropper API; hidden where unsupported)
+  if(!window.EyeDropper) $('cp-eyedrop').style.display='none';
+  $('cp-eyedrop').addEventListener('click', async ()=>{
+    try {
+      const { sRGBHex } = await new EyeDropper().open();
+      const hsv=_hexToHsv(sRGBHex); _cp.h=hsv.h; _cp.s=hsv.s; _cp.v=hsv.v;
+      _cpDrawGradient(); _cpRefreshUI(); _cpApply();
+      if(_cp.target==='fg') $('tb-colorHex').value=sRGBHex;
+      else if(_cp.target==='bg') $('tb-bgHex').value=sRGBHex;
+    } catch(_) { /* cancelled */ }
+  });
+  // Every <input type="color"> opens this hex picker instead of the browser's own
+  // (whose RGB/HSL/hex mode can't be set by the page).
+  document.addEventListener('click', e=>{
+    const inp = e.target.closest && e.target.closest('input[type="color"]');
+    if(!inp || inp.disabled) return;
+    e.preventDefault();
+    const popup = $('cp-popup');
+    if(popup.style.display==='block' && _cp.target===inp){ popup.style.display='none'; return; }
+    openCP(inp, inp);
+  }, true);
+  // The popup is position:fixed, so close it when the panel under it scrolls away
+  document.addEventListener('scroll', e=>{
+    const popup = $('cp-popup');
+    if(popup.style.display!=='none' && !popup.contains(e.target)) popup.style.display='none';
+  }, true);
+  // Close on outside click (but not on swatches, colour inputs or the popup itself)
   document.addEventListener('mousedown', e=>{
     const popup = $('cp-popup');
     if(popup.style.display==='none') return;
-    if(!popup.contains(e.target) && !e.target.classList.contains('cp-swatch'))
+    if(!popup.contains(e.target) && !e.target.classList.contains('cp-swatch')
+       && !(e.target.matches && e.target.matches('input[type="color"]')))
       popup.style.display='none';
   });
 }
+
+// ── Type a slider value ──────────────────────────────────────────────────────
+// Click any .slider-val label next to a range slider, type a number, and press
+// Enter (Esc cancels). The label may show a scaled value (%, s, px…), so the
+// label↔slider mapping is measured once per slider (label = a + b·raw) from the
+// slider's own oninput handler, then the typed number is converted back to raw.
+function _svRangeFor(lbl) {
+  const prev = lbl.previousElementSibling;
+  if (prev && prev.matches('input[type="range"]')) return prev;
+  return lbl.parentElement && lbl.parentElement.querySelector('input[type="range"]');
+}
+function _svFire(el) {
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function _svMap(el, lbl) {
+  if (el._svMap) return el._svMap;
+  const r0 = +el.value, d0 = parseFloat(lbl.textContent);
+  const min = +el.min || 0, max = el.max === '' ? 100 : +el.max;
+  const r1 = Math.abs(max - r0) >= Math.abs(r0 - min) ? max : min;
+  let map = { a: 0, b: 1 };
+  if (isFinite(d0) && r1 !== r0) {
+    el.value = r1; el.dispatchEvent(new Event('input', { bubbles: true }));
+    const d1 = parseFloat(lbl.textContent);
+    el.value = r0;
+    if (isFinite(d1) && d1 !== d0) { const b = (d1 - d0) / (r1 - r0); map = { a: d0 - b * r0, b }; }
+  }
+  return (el._svMap = map);
+}
+document.addEventListener('click', e => {
+  const lbl = e.target.closest && e.target.closest('.slider-val');
+  if (!lbl || lbl.isContentEditable) return;
+  const el = _svRangeFor(lbl);
+  if (!el || el.disabled) return;
+  const before = lbl.textContent;
+  const num = parseFloat(before);
+  lbl.contentEditable = 'true';
+  lbl.spellcheck = false;
+  if (isFinite(num)) lbl.textContent = String(num);
+  lbl.focus();
+  const sel = getSelection(), rg = document.createRange();
+  rg.selectNodeContents(lbl); sel.removeAllRanges(); sel.addRange(rg);
+  let done = false;
+  const finish = commit => {
+    if (done) return; done = true;
+    const typed = parseFloat(lbl.textContent.replace(',', '.'));
+    lbl.contentEditable = 'false';
+    lbl.textContent = before;
+    if (!commit || !isFinite(typed)) return;
+    const { a, b } = _svMap(el, lbl);
+    const min = +el.min || 0, max = el.max === '' ? 100 : +el.max;
+    const step = el.step === 'any' ? 0 : (+el.step || 1);
+    let raw = +(b ? (typed - a) / b : typed).toFixed(6);
+    raw = Math.min(max, Math.max(min, raw));
+    // Keep the typed number exactly: if it falls between the slider's steps,
+    // loosen the step (whole numbers → 1, otherwise any) so it isn't rounded off.
+    if (step && Math.abs((raw - min) / step - Math.round((raw - min) / step)) > 1e-6)
+      el.step = Number.isInteger(raw) && Number.isInteger(min) ? '1' : 'any';
+    el.value = +raw.toFixed(6);
+    _svFire(el);   // the slider's own handler updates the label and re-renders
+  };
+  lbl.addEventListener('keydown', function k(ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); finish(true); lbl.removeEventListener('keydown', k); lbl.blur(); }
+    else if (ev.key === 'Escape') { finish(false); lbl.removeEventListener('keydown', k); lbl.blur(); }
+  });
+  lbl.addEventListener('blur', () => finish(true), { once: true });
+});
 
 // Apply one or more inline styles to the saved selection.
 // Signatures:
@@ -5737,6 +5865,7 @@ async function exportStipplePNGSeq() {
     <input type="range" id="cp-opa-range" min="0" max="100" step="1" value="100">
   </div>
   <div class="cp-bottom">
+    <button type="button" id="cp-eyedrop" title="Pick a colour from the screen">⌖</button>
     <input type="text" id="cp-hex-input" maxlength="7" spellcheck="false" placeholder="#rrggbb">
     <input type="number" id="cp-opa-val" min="0" max="100" step="1" value="100">
     <span id="cp-opa-pct">%</span>
