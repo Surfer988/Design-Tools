@@ -1,7 +1,7 @@
 # Halftone Dither
 
-A browser design tool for halftone / ASCII-dither graphics and text-filled
-shapes, as stills or animations. Each version is a single HTML file with no
+A browser design tool for halftone / ASCII-dither graphics, text-filled
+shapes and bar-stippled images, as stills or animations. Each version is a single HTML file with no
 build step.
 
 **Live:** <https://surfer988.github.io/Design-Tools/Halftone%20Tool/> (GitHub Pages, updates after each sync)
@@ -25,7 +25,8 @@ halftone/
 └── versions/
     ├── manifest.json     → version list (feeds the in-app "v:" switcher)
     ├── v1/  halftone.html + CONTEXT.md
-    └── v2/  halftone.html + CONTEXT.md   ← current
+    ├── v2/  halftone.html + CONTEXT.md
+    └── v2.1/ halftone.html + CONTEXT.md  ← current
 ```
 
 Every version folder has a **`CONTEXT.md`** that fully describes that version:
@@ -37,7 +38,8 @@ into any AI chat to bring that chat up to speed.
 | Version | Date | Summary |
 |---|---|---|
 | v1 | 2026-05-19 | Original stable. Dither (phrase / density / **pattern**) and SVG Fill |
-| **v2** | 2026-11-05 | v1 merged with later work: colour picker, multiple text blocks, raster masks |
+| v2 | 2026-11-05 | v1 merged with later work: colour picker, multiple text blocks, raster masks |
+| **v2.1** | 2026-11-05 | New **Stippling** tab: image → bars, candle lines, seeded random sections, grow / wave / flicker animation |
 
 Each version is also a git tag (`git checkout v1`). The tag `pre-cleanup`
 holds the old loose copies (`index.html`, `beta.html`, `image-processing.html`).
