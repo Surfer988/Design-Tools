@@ -1,0 +1,176 @@
+# Halftone Dither — v2.1 context
+
+> Self-contained brief for an AI assistant or collaborator. Paste this whole file
+> into a new chat together with (or instead of) `versions/v2.1/halftone.html`.
+
+| | |
+|---|---|
+| **Version** | v2.1 (current) · 2026-11-05 |
+| **File** | `versions/v2.1/halftone.html`, a single file with no build step and no dependencies (~5,470 lines of HTML + CSS + vanilla JS) |
+| **Built from** | v2 plus a third tab, **Stippling**, which turns an image into bars |
+| **Run** | Open the file in Chrome/Safari, or serve the repo root (`python3 -m http.server 7823`) and open `/versions/v2.1/halftone.html` |
+
+## 1. What the tool is
+
+A browser design tool for making **halftone / ASCII-dither graphics**,
+**text-filled shapes** and **bar-stippled images**, as stills or animations.
+Everything runs client-side on `<canvas>`. The top **mode banner** switches
+between three output modes, which all draw to the same `#output` canvas:
+
+### A. ASCII Dithering (`setOutputMode('video')`, button `#omBtn-video`)
+Image, GIF or video in → a dithered grid of characters, blocks or SVG stamps out.
+- **Image**: Scale, Brightness, Contrast, Blur, Noise, Invert. **Levels**: Black pt / White pt.
+- **Dithering**: Bayer 8×8 (ordered) or Floyd–Steinberg (error diffusion).
+- **Text mode** (`renderMode`):
+  - `phrase` (Phrase tiling) repeats a phrase across the ink cells.
+  - `density` (Density set) picks a char from a light→dark ramp.
+  - `pattern` (Pattern) uses an uploaded SVG as the glyph, tinted per band, with a per-band size %.
+- **Cell**: size, output scale, margin, font and weight, with custom font upload (`localStorage` key `halftone_custom_fonts_v2`).
+- **Tonal bands**: 4/6/8/12 bands, from band 0 = paper to N-1 = darkest ink. Each band has colour, opacity and margin, and bands 1 and up also have Text/Block/Both, a background fill and a pattern size. There is a palette grid and an auto-palette.
+- **Animation**: typing (seq/rnd/lr/rl/tb/bt plus decode scramble), flicker, and media playback for GIF/video.
+- **Export**: PNG, PNG sequence (ZIP built in the browser), SVG (Pattern mode uses one `<symbol>` per band), TXT, WebM.
+
+### B. SVG Fill / Text Fill (`setOutputMode('svgfill')`)
+Drop in an **SVG, or a raster image that gets thresholded to a mask**, and its
+interior fills with rows of styled text.
+- **Text**: one or more rich-text blocks (`addSVGFillBlock`) with a floating style toolbar and a Sequence/Random fill order.
+- **Layout and colours**: line gap, grid margin, SVG size and output; font and background colours via the custom HSV + alpha picker (`openCP`).
+- **Animation**:
+  - typing: order, reveal per char or per block, speed, stagger, decode, and **Text fx** (`SVGFILL_TEXT_EFFECTS`).
+  - flicker: density, slow/fast Hz and cycle, by char or by block.
+- **Export**: PNG, SVG, PNG sequence, WebM.
+
+### C. Stippling (`setOutputMode('stipple')`, button `#omBtn-stipple`) — new in v2.1
+Image (or GIF/video frame) → **columns or rows of bars**, where each bar's
+length follows how dark the image is there. Sidebar `#stipple-panel`, ids
+prefixed `st-`, sections can be dragged to reorder.
+
+- **Image**: its own Scale, Brightness, Contrast, Blur, Noise, Black/White pt and Invert. These are separate from the dither tab's controls.
+- **Bars**:
+  - Direction: **Vertical / Horizontal** (`stip.dir` = `v` / `h`).
+  - **Bar width**, **Distance** (gap between bar lines), **Output** scale %, **Threshold** (tones lighter than this get no bar).
+- **Each column** (`stip.structure`):
+  - `single`: one bar per column. Length = mean darkness × column length, centred on the column's darkness-weighted centroid, clamped to Min/Max size.
+  - `sections`: the column is cut into random sections. Each section's length is random between **Min size** and **Max size**, sections are separated by **Section gap**, and the bar in each section is `section length × section darkness`.
+  - **Snap to edges** (`stip.snap`, on by default, sections only): the column is first split into *edge runs* (`_stDarkRuns`). A run is a stretch at or above the threshold whose darkness stays on one of **Edge levels** tone steps (`st-snaplev`, 1–8, default 4). A change of level counts as an edge, so a subject is separated from a lighter background that is still above the threshold. Blips of 2 source px or less are absorbed. Sections are cut only inside runs, and a bar that touches a run boundary is pinned to it. When a short run's bar touches both ends, it sits on the stronger tonal step, usually the outline. Edge levels 1 means the threshold outline only. With Snap off, sections ignore the image's edges, which gives a looser, "hairier" look.
+  - **Divergence** (0–100%) adds random jitter to bar length and position.
+  - **Seed** (with a 🎲 button) makes the randomness reproducible.
+- **Candle line**: an optional middle line through each bar that sticks out past both ends, like a candlestick chart. Settings: **Line width**, **Extend** (px past each end, jittered by Divergence), and colour (same as bar, or a custom colour).
+- **Colour** (`stip.colorMode`):
+  - `bands`: a palette (from `PALETTES`, minus its paper colour) split into 2/3/4/6/8 bands from light to dark, with per-band colour pickers. Choosing a palette also sets the background to its paper colour.
+  - `mono`: one solid colour.
+  - `alpha` ("Mono fade"): one colour whose opacity follows darkness, from **Min opacity** up to 100%.
+  - Background colour + opacity, for all colour modes. 0% gives a transparent PNG.
+- **Animation**. An intro and a motion run together:
+  - **Intro** (how bars appear):
+    - `none`.
+    - `grow`: each bar goes from 0 to full length with easeOutCubic.
+    - `flicker` ("Flicker in"): each bar blinks with rising probability until it settles on.
+    - Order: → ← ↓ ↑ ◎ (centre out) or Random.
+    - **Spread** = time from the first bar starting to the last. **Per bar** = how long each bar takes. **Flicker Hz** applies to flicker-in.
+  - **Motion** (during and after the intro):
+    - `none`.
+    - `wave`: a sine wave of height change moving in a direction (→ ← ↓ ↑ ◎), with **Waves** = crests across the image.
+    - `random`: smooth per-bar random height change (two sines with random frequency and phase per bar).
+    - `flicker`: a **Density** % of bars blink at a random rate between **Slow/Fast Hz**.
+    - **Height change** % and **Speed** (Hz) apply to wave and random.
+  - **Curves**: three collapsible cubic-bezier editors (`<details class="st-curve" data-curve=…>`). Drag the two yellow handles, pick a preset, or type `x1, y1, x2, y2` (same meaning as CSS `cubic-bezier()`). y can go from −0.6 to 1.6, so curves can overshoot. **All three read like CSS easing: x = time →, y = progress ↑**. Each editor labels its axes (`data-x` / `data-y`).
+    - **Stagger curve** (`stagger`, default Linear): y = share of bars that have started by time x within Spread. Steep means many bars start quickly; flat means few. A bar at order position q starts at the curve's **inverse**, `_stCurveInv('stagger', q)`, which uses an inverse lookup table (`_stLUTInv`, first crossing).
+    - **Per-bar curve** (`grow`, default Cubic out): y = bar length (Grow) or the chance of being visible (Flicker in) over the bar's own duration. Back out overshoots and then settles.
+    - **Motion curve** (`motion`, default Sine in-out): y = bar height, from `1 − Height change` at 0 to full height at 1. Wave plays the curve forward and then back each cycle (Sine in-out ≈ a sine wave). Random runs its noise value through it.
+    - Presets: Linear, Ease, Ease in, Ease out, Ease in-out, Sine in-out, Cubic out, Expo out, Expo in, Back out, Back in-out, and Custom.
+    - Engine: `stSetCurve(key, [x1,y1,x2,y2])` builds a 257-sample lookup table (`_stLUT`), and `_stCurve(key, p)` reads it each frame. Curves can be edited live during a preview.
+  - **Bars grow from**: Centre, Top/Left, or Bottom/Right. This is the anchor used by both grow and height motion.
+  - **Loop intro**: the intro repeats every `spread + per bar + 1 s`.
+  - **Rec. secs** sets the length of the WebM and PNG-sequence exports.
+  - Buttons: ▶ Preview, ⬤ WebM (MediaRecorder at 30 fps, 8 Mbps), 🖼 PNG Seq (24 fps ZIP), ⏸ Pause, ■ Stop. A preview with no loop and no motion stops by itself when the intro ends.
+- **Export**: PNG (the static, fully grown frame) and SVG (one `<rect>` per bar and per candle line, grouped by colour).
+- **GIF/video sources**: `showFrame()` calls `render()`, which forwards to `renderStipple()` in this mode, so stippling follows the current frame.
+
+## 2. Architecture
+
+The main `<script>` uses global functions and state with inline `onclick` /
+`oninput` handlers, and `$ = id => document.getElementById(id)`. Stippling
+lives in its **own later `<script>` block**. The main script's boot calls
+`setOutputMode('video')` before that block exists, so the hooks into
+stippling are guarded with `typeof renderStipple === 'function'`.
+
+### Code map (line numbers are approximate)
+
+| Line | Section / symbol | Role |
+|---|---|---|
+| 1072 | `#stipple-panel` HTML | Stippling sidebar (toggles use `data-stg` + `data-val`; conditional rows use `data-st-show="key:v1,v2"`) |
+| 1318 | Constants: `MAX_DIM`, `PALETTES`, `DENSITY_PRESETS` | |
+| 1348 | State: `renderMode`, `algo`, `outputMode`, band arrays, `patternSVG`, `anim`, `media`, `svgFill` | |
+| 1462 | `getSettings()` | Snapshot of the dither controls |
+| 1545 | `setOutputMode(m)` | `'video'` / `'svgfill'` / `'stipple'`. Shows the right panel and stops the other modes' animations |
+| 1576 | `initBands` / `setBandCount` / `buildBandUI` | Dither tonal bands |
+| 1582 | Pattern unit (`loadPatternSVGFile`, mips, `getTintedPattern`) | Dither Pattern mode |
+| 1914 | `loadFile` → `loadImage` / `loadLiveSource` | Input routing (SVG → SVG Fill; GIF/video → frames) |
+| 2139 | `getSourcePixels(blur, scale)` | Shared downscaled, blurred source pixels |
+| 2156 | `drawGlyph` | Shared per-cell drawer for the dither tab |
+| 2175 | `render()` | Dither pipeline. **In stipple mode it forwards to `renderStipple()`** |
+| 2356–2846 | Dither animation, flicker, media playback | |
+| 2876 | `exportPNG`, `exportPNGFrames`, `exportSVG`, `exportTXT`, `buildZip`, `dl` | |
+| 3140 | Custom fonts | |
+| 3334 | SVG Fill editors and blocks | |
+| 3570 | Custom colour picker (`openCP`) | |
+| 3939–4143 | `loadSVGFillFile`, masks, `svgFillComputeLayout`, `renderSVGFill` | |
+| 4271 | `SVGFILL_TEXT_EFFECTS` | `(t, meta) => {tx,ty,sx,sy,rot,opacity,color,char,clipToCell}` |
+| 4270–4755 | `svgFillAnim`, `svgFillDrawCellWithEffect`, `svgFillAnimFrame`, flicker, `startSVGFillAnimation` | |
+| **4935** | `stip` | Stippling state: toggle keys, `bars`, `s` (settings), `ow`/`oh`, `anim` |
+| 5178 | `stSet(key, val)` | Sets a toggle, refreshes button states and `data-st-show` rows, then re-renders |
+| 5014 / 5032 | `getStippleSettings()` / `getStippleAnimSettings()` | Read all `st-` controls |
+| 5252 | `_stDarkness(s)` | Source → darkness grid (0 = paper, 1 = ink). Alpha counts as paper |
+| 5276 | `_stDarkRuns` | Edge runs of a line (threshold + tone levels), used by Snap to edges |
+| 5319 | `buildStippleBars(s)` | Darkness → bar list. Works in "line space": `a` = across lines, `p` = along the line |
+| 5439 | `_stBarK(b, t, A, seed)` | Per-bar length multiplier at time `t`, or `-1` when hidden |
+| 5478 | `drawStippleFrame(ctx, s, bars, t, A)` | Draws one frame (`A = null` → static) |
+| 5509 | `renderStipple()` / `debouncedStipple` | Rebuilds bars and draws the static frame. While animating, it only swaps the data |
+| 5255–5320 | `startStippleAnim`, `stippleFrame`, `stopStippleAnim`, `toggleStipplePause` | rAF loop with time-based frames and a MediaRecorder |
+| 5320–5388 | `exportStipplePNG`, `exportStippleSVG`, `exportStipplePNGSeq` | |
+| 5660 | `initStipple()` | Fills the palette select and applies the initial toggle state |
+| end | Version switcher | Reads `../manifest.json` |
+
+### Stippling data model
+Each bar is `{ id, line, a0, p0, len, tone, col, alpha, nx, ny, we }`:
+- `a0` is the cross-axis start, with width `s.barW`.
+- `p0` and `len` are the start and length along the axis, in output px.
+- `tone` is 0..1 above the threshold, and decides `col` and `alpha`.
+- `nx` / `ny` are the screen-normalised centre, used for animation order and wave direction.
+- `we` is the candle-line extension jitter.
+
+The bar layout comes from `_stRng(seed)` (mulberry32), drawn in a fixed order,
+so the same seed always gives the same bars. Animation randomness comes from
+the stateless `_stHash(id, n)`, so frames depend only on `t`. That is what lets
+the PNG sequence render frames offline (`t = i / 24`), and lets settings change
+live during a preview.
+
+## 3. How to extend
+- **New animation curve**: add a `<details class="st-curve" data-curve="name" data-label="…">` in the panel, a default in `ST_CURVE_DEFAULTS`, and call `_stCurve('name', p)` where it applies. New presets go in `ST_CURVE_PRESETS`.
+- **New stippling animation**: add a branch in `_stBarK`. It returns a length multiplier, or `-1` to hide the bar. Then add a `data-stg="motion"` (or `intro`) button, and any rows with `data-st-show="motion:yourname"`. No other wiring is needed.
+- **New stippling control**: add an `st-` input with `oninput="stSv(this,'unit')"`, read it in `getStippleSettings()`, and use it in `buildStippleBars` or `drawStippleFrame`.
+- **New SVG Fill text effect**: add an entry to `SVGFILL_TEXT_EFFECTS`. The `t = 1` state must look exactly like a plain draw.
+- **New dither glyph mode**: add a toggle and a `*-ctrl` block, a branch in `setMode`, the `charGrid` in `render()`, a draw branch in `drawGlyph`, and an `exportSVG` branch.
+
+## 4. Known issues and follow-ups
+- `SplitText_mask` pops on its last frame with oversized fonts, because the fast path doesn't clip.
+- Dither `grain` is hard-coded off.
+- Stippling: when the source is a GIF/video, playback is controlled from the frame bar. The stippling animation and media playback aren't synced for recording.
+- Stippling SVG export is always the static frame. The animation only exports as WebM or PNG sequence.
+- Very small bar width + gap on large outputs can produce 50k+ bars. Static rendering is still fine, but preview frame rates drop.
+
+## 5. Verification checklist
+1. Open the file. The console should show no errors, the top bar should read `v: v2.1`, and the three tabs should fit on one line.
+2. **Stippling**: drop in an image. Try Vertical/Horizontal, Single bar/Random sections, a different Seed, Divergence, Candle line, and all three colour modes.
+3. Preview Grow → (L→R) with Motion Wave, then Flicker in + Random order + Motion Flicker. Pause, resume and stop.
+4. Export PNG, SVG, WebM (Rec. secs 2) and a PNG sequence.
+5. Switch to ASCII Dithering: the image should re-render as dither, and a running stippling preview should stop.
+6. **ASCII and SVG Fill regression**: follow the v2 checks (Pattern mode, colour picker, two text blocks, a raster mask).
+
+## 6. Changes from v2
+- New **Stippling** tab with everything in §1C.
+- `setOutputMode` handles three modes. It now stops other modes' animations when switching, and re-renders the dither when you come back to ASCII.
+- `render()` forwards to `renderStipple()` in stipple mode.
+- Mode-banner labels no longer wrap.
+- Boot: the deferred init (colour picker, SVG Fill, fonts) now waits for `DOMContentLoaded`, because `#cp-popup` sits after the later scripts and a bare `setTimeout(0)` could run before it was parsed.

@@ -1,4 +1,5 @@
 [
   { "name": "v1", "dir": "v1", "savedAt": "2026-05-19", "note": "Original stable · Pattern mode" },
-  { "name": "v2", "dir": "v2", "savedAt": "2026-11-05", "note": "Merged · colour picker, multi-block, Pattern mode", "current": true }
+  { "name": "v2", "dir": "v2", "savedAt": "2026-11-05", "note": "Merged · colour picker, multi-block, Pattern mode" },
+  { "name": "v2.1", "dir": "v2.1", "savedAt": "2026-11-05", "note": "Stippling tab · image → bars", "current": true }
 ]
