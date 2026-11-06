@@ -87,6 +87,10 @@ prefixed `st-`, sections can be dragged to reorder.
 - **Export**: PNG (the static, fully grown frame) and SVG (one `<rect>` per bar and per candle line, grouped by colour).
 - **GIF/video sources**: `showFrame()` calls `render()`, which forwards to `renderStipple()` in this mode, so stippling follows the current frame.
 
+### Shared controls (all tabs)
+- **Type a slider value**: click any value label next to a slider (`.slider-val`), type a number, and press Enter (Esc cancels, clicking away applies). The label may show a scaled value (%, s, px, fps), so the label-to-slider mapping (`label = a + b * raw`) is measured once per slider by firing its own `oninput` (`_svMap`). Values are clamped to the slider's min/max. A value between the slider's steps is kept exactly by loosening `step` (to `1`, or `any` for decimals).
+- **Colour inputs**: every `<input type="color">` opens the app's own hex picker (`#cp-popup`) instead of the browser's, whose RGB/HSL/hex mode can't be set by the page. A document-level capture `click` listener calls `openCP(inputEl, inputEl)`. For input targets, the popup gets the `.cp-solid` class (no opacity row), and `_cpApply` writes the hex back and fires the input's `input`/`change` events. The hex field accepts `#rrggbb`, `rrggbb` or `#rgb`. There is an eyedropper button (EyeDropper API, hidden where unsupported). The popup closes on an outside click or when a panel scrolls.
+
 ## 2. Architecture
 
 The main `<script>` uses global functions and state with inline `onclick` /
@@ -99,37 +103,38 @@ stippling are guarded with `typeof renderStipple === 'function'`.
 
 | Line | Section / symbol | Role |
 |---|---|---|
-| 1072 | `#stipple-panel` HTML | Stippling sidebar (toggles use `data-stg` + `data-val`; conditional rows use `data-st-show="key:v1,v2"`) |
+| 1085 | `#stipple-panel` HTML | Stippling sidebar (toggles use `data-stg` + `data-val`; conditional rows use `data-st-show="key:v1,v2"`) |
 | 1318 | Constants: `MAX_DIM`, `PALETTES`, `DENSITY_PRESETS` | |
 | 1348 | State: `renderMode`, `algo`, `outputMode`, band arrays, `patternSVG`, `anim`, `media`, `svgFill` | |
-| 1462 | `getSettings()` | Snapshot of the dither controls |
-| 1545 | `setOutputMode(m)` | `'video'` / `'svgfill'` / `'stipple'`. Shows the right panel and stops the other modes' animations |
-| 1576 | `initBands` / `setBandCount` / `buildBandUI` | Dither tonal bands |
+| 1475 | `getSettings()` | Snapshot of the dither controls |
+| 1558 | `setOutputMode(m)` | `'video'` / `'svgfill'` / `'stipple'`. Shows the right panel and stops the other modes' animations |
+| 1589 | `initBands` / `setBandCount` / `buildBandUI` | Dither tonal bands |
 | 1582 | Pattern unit (`loadPatternSVGFile`, mips, `getTintedPattern`) | Dither Pattern mode |
-| 1914 | `loadFile` → `loadImage` / `loadLiveSource` | Input routing (SVG → SVG Fill; GIF/video → frames) |
-| 2139 | `getSourcePixels(blur, scale)` | Shared downscaled, blurred source pixels |
-| 2156 | `drawGlyph` | Shared per-cell drawer for the dither tab |
-| 2175 | `render()` | Dither pipeline. **In stipple mode it forwards to `renderStipple()`** |
+| 1927 | `loadFile` → `loadImage` / `loadLiveSource` | Input routing (SVG → SVG Fill; GIF/video → frames) |
+| 2152 | `getSourcePixels(blur, scale)` | Shared downscaled, blurred source pixels |
+| 2169 | `drawGlyph` | Shared per-cell drawer for the dither tab |
+| 2188 | `render()` | Dither pipeline. **In stipple mode it forwards to `renderStipple()`** |
 | 2356–2846 | Dither animation, flicker, media playback | |
-| 2876 | `exportPNG`, `exportPNGFrames`, `exportSVG`, `exportTXT`, `buildZip`, `dl` | |
+| 2889 | `exportPNG`, `exportPNGFrames`, `exportSVG`, `exportTXT`, `buildZip`, `dl` | |
 | 3140 | Custom fonts | |
 | 3334 | SVG Fill editors and blocks | |
-| 3570 | Custom colour picker (`openCP`) | |
+| 3613 | Custom colour picker (`openCP`, `_cpApply`; also drives every `input[type=color]`) | |
+| 3806 | Type-a-slider-value (`_svRangeFor`, `_svMap`, document click handler) | |
 | 3939–4143 | `loadSVGFillFile`, masks, `svgFillComputeLayout`, `renderSVGFill` | |
-| 4271 | `SVGFILL_TEXT_EFFECTS` | `(t, meta) => {tx,ty,sx,sy,rot,opacity,color,char,clipToCell}` |
+| 4399 | `SVGFILL_TEXT_EFFECTS` | `(t, meta) => {tx,ty,sx,sy,rot,opacity,color,char,clipToCell}` |
 | 4270–4755 | `svgFillAnim`, `svgFillDrawCellWithEffect`, `svgFillAnimFrame`, flicker, `startSVGFillAnimation` | |
-| **4935** | `stip` | Stippling state: toggle keys, `bars`, `s` (settings), `ow`/`oh`, `anim` |
-| 5178 | `stSet(key, val)` | Sets a toggle, refreshes button states and `data-st-show` rows, then re-renders |
+| 5091 | `stip` | Stippling state: toggle keys, `bars`, `s` (settings), `ow`/`oh`, `anim` |
+| 5306 | `stSet(key, val)` | Sets a toggle, refreshes button states and `data-st-show` rows, then re-renders |
 | 5014 / 5032 | `getStippleSettings()` / `getStippleAnimSettings()` | Read all `st-` controls |
-| 5252 | `_stDarkness(s)` | Source → darkness grid (0 = paper, 1 = ink). Alpha counts as paper |
-| 5276 | `_stDarkRuns` | Edge runs of a line (threshold + tone levels), used by Snap to edges |
-| 5319 | `buildStippleBars(s)` | Darkness → bar list. Works in "line space": `a` = across lines, `p` = along the line |
-| 5439 | `_stBarK(b, t, A, seed)` | Per-bar length multiplier at time `t`, or `-1` when hidden |
-| 5478 | `drawStippleFrame(ctx, s, bars, t, A)` | Draws one frame (`A = null` → static) |
-| 5509 | `renderStipple()` / `debouncedStipple` | Rebuilds bars and draws the static frame. While animating, it only swaps the data |
+| 5380 | `_stDarkness(s)` | Source → darkness grid (0 = paper, 1 = ink). Alpha counts as paper |
+| 5404 | `_stDarkRuns` | Edge runs of a line (threshold + tone levels), used by Snap to edges |
+| 5447 | `buildStippleBars(s)` | Darkness → bar list. Works in "line space": `a` = across lines, `p` = along the line |
+| 5567 | `_stBarK(b, t, A, seed)` | Per-bar length multiplier at time `t`, or `-1` when hidden |
+| 5606 | `drawStippleFrame(ctx, s, bars, t, A)` | Draws one frame (`A = null` → static) |
+| 5637 | `renderStipple()` / `debouncedStipple` | Rebuilds bars and draws the static frame. While animating, it only swaps the data |
 | 5255–5320 | `startStippleAnim`, `stippleFrame`, `stopStippleAnim`, `toggleStipplePause` | rAF loop with time-based frames and a MediaRecorder |
 | 5320–5388 | `exportStipplePNG`, `exportStippleSVG`, `exportStipplePNGSeq` | |
-| 5660 | `initStipple()` | Fills the palette select and applies the initial toggle state |
+| 5788 | `initStipple()` | Fills the palette select and applies the initial toggle state |
 | end | Version switcher | Reads `../manifest.json` |
 
 ### Stippling data model
@@ -166,7 +171,8 @@ live during a preview.
 3. Preview Grow → (L→R) with Motion Wave, then Flicker in + Random order + Motion Flicker. Pause, resume and stop.
 4. Export PNG, SVG, WebM (Rec. secs 2) and a PNG sequence.
 5. Switch to ASCII Dithering: the image should re-render as dither, and a running stippling preview should stop.
-6. **ASCII and SVG Fill regression**: follow the v2 checks (Pattern mode, colour picker, two text blocks, a raster mask).
+6. Click a slider's value label, type a number and press Enter; the slider should move. Click any colour swatch; the hex picker should open.
+7. **ASCII and SVG Fill regression**: follow the v2 checks (Pattern mode, colour picker, two text blocks, a raster mask).
 
 ## 6. Changes from v2
 - New **Stippling** tab with everything in §1C.
@@ -174,3 +180,5 @@ live during a preview.
 - `render()` forwards to `renderStipple()` in stipple mode.
 - Mode-banner labels no longer wrap.
 - Boot: the deferred init (colour picker, SVG Fill, fonts) now waits for `DOMContentLoaded`, because `#cp-popup` sits after the later scripts and a bare `setTimeout(0)` could run before it was parsed.
+- Slider values can be typed (click the value label), on every tab.
+- All colour swatches open the app's own hex picker (with an eyedropper) instead of the browser's RGB picker.
