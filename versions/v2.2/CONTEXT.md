@@ -101,7 +101,7 @@ prefixed `ht-`, deliberately few controls. Lives in its own `<script>` block
   - Tone pipeline (`_htTone`): clamp (levels) → contrast → gamma → invert.
   - **Auto Tone** (`htAutoTone`): clamp = 2nd/98th percentile of darkness, contrast 0, gamma so the median lands on 50%. **↺** (`htResetTone`) restores the defaults.
   - **Invert**.
-- **Grid**: **Square / Hexagonal** (`ht.grid`), **Spacing** (px between dot centres), **Rotation** (−90…90°, about the image centre), **Dot size** (diameter at full black as % of spacing; hex gets ×1.075 so full black still closes the gaps).
+- **Grid**: **Square / Hexagonal** (`ht.grid`), **Spacing** (px between dot centres), **Rotation** (−90…90°, about the image centre), **Dot size** (10–200%; 100% = at full black the dot covers its whole cell, radius sp/√2 square or sp/√3 hex, so dark dots **overlap** like print halftone; ~70% = dots just touch).
 - **Colour**: dot colour; background colour + opacity (0% = transparent PNG / no SVG rect).
 - **Export**: PNG, **SVG** (one `<circle>` per dot in a single `<g fill>`; for video it is the current frame), Copy PNG (Clipboard API).
 - **Video / GIF**: upload uses the shared `#file-input` and frame bar (`showFrame` → `render()` → `renderHalftone()`), so scrub/play just work. When the source has more than one frame, the panel shows **⬤ Video (WebM)** (`exportHalftoneVideo`: MediaRecorder on `#output`, every frame once at its own duration, 12 Mbps) and **🖼 PNG Seq** (`exportHalftonePNGSeq`, ZIP), plus a ■ Stop button. Browsers only record WebM natively, so there is no MP4.

@@ -1333,8 +1333,8 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
         <input type="range" id="ht-spacing" min="3" max="100" value="21" oninput="htSv(this,'px')"><span class="slider-val">21px</span></div>
       <div class="slider-row"><span class="slider-lbl">Rotation</span>
         <input type="range" id="ht-rot" min="-90" max="90" value="0" oninput="htSv(this,'°')"><span class="slider-val">0°</span></div>
-      <div class="slider-row" title="Dot diameter at full black, relative to the spacing"><span class="slider-lbl">Dot size</span>
-        <input type="range" id="ht-dot" min="10" max="150" value="100" oninput="htSv(this,'%')"><span class="slider-val">100%</span></div>
+      <div class="slider-row" title="Dot size at full black. 100% = the dot covers its whole cell, so dark dots overlap; ~70% = dots only just touch"><span class="slider-lbl">Dot size</span>
+        <input type="range" id="ht-dot" min="10" max="200" value="100" oninput="htSv(this,'%')"><span class="slider-val">100%</span></div>
     </div>
 
     <div class="ds">
@@ -6022,7 +6022,9 @@ function buildHalftoneDots(s) {
   };
   const sp = s.spacing, hex = s.grid === 'hex';
   const rowStep = hex ? sp * Math.sqrt(3) / 2 : sp;
-  const rMax = sp / 2 * s.dot * (hex ? 1.075 : 1);   // hex: a little bigger so full black still closes the gaps
+  // 100% = full black covers the whole cell, so neighbouring dots overlap in dark
+  // areas (as in print halftone): square cell corner is sp/√2 away, hex is sp/√3.
+  const rMax = (hex ? sp / Math.sqrt(3) : sp / Math.SQRT2) * s.dot;
   const cx = W / 2, cy = H / 2, R = Math.hypot(W, H) / 2 + sp;
   const cos = Math.cos(s.rot), sin = Math.sin(s.rot);
   const out = [];
