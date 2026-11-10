@@ -103,6 +103,12 @@ prefixed `ht-`, deliberately few controls. Lives in its own `<script>` block
   - **Invert**.
 - **Grid**: **Square / Hexagonal** (`ht.grid`), **Spacing** (px between dot centres), **Rotation** (−90…90°, about the image centre), **Dot size** (10–200%; 100% = at full black the dot covers its whole cell, radius sp/√2 square or sp/√3 hex, so dark dots **overlap** like print halftone; ~70% = dots just touch).
 - **Dot shape** (`ht.shape`, `htSetShape`): Circle, Square, Diamond, Ellipse (1.25 × 0.8 of the circle radius, same area), Line (cell-long bars whose thickness follows tone, so neighbours join into lines). All shapes turn with the grid Rotation. The stored size per dot depends on the shape (radius, half side, half diagonal or half thickness); `_htPoly` gives corner points for square/diamond/line, which the canvas and SVG (`<polygon>`, `<ellipse transform=rotate>`) share.
+- **Corners** (`ht-corner`, 0–100% of the dot's half-size) and **Neck** (`ht-neck`, 0–100% of spacing): rounded dots, and dots that merge into one smooth shape with rounded inside corners and soft holes. When either is above 0, drawing switches from vector shapes to a **signed distance field**:
+  - `_htShapeSDF(s)` returns each shape's distance function in the grid frame. Rounded corners use the rounded-box trick: shrink by ρ, then subtract ρ. The diamond is a box turned 45°.
+  - `buildHalftoneField` rasterises each dot's distance over its bounding box (shape reach + neck), keeping the **nearest and second-nearest** distance per pixel. It then applies a quadratic smooth-min (k = neck × spacing) between just those two. Smoothing across all neighbours would add up and fill the small white holes.
+  - `drawHalftoneField` turns the field into pixels with anti-aliased coverage `clamp(0.5 − d, 0, 1)`, which is about 35 ms at 1120×560.
+  - SVG export traces the same field (`_htTracePath`): marching squares over pixel centres with a 1-sample "outside" border, segments stitched into loops, simplified with RDP at 0.25 px, and written as one `<path fill-rule="evenodd">`. It matches the canvas to within about 0.01% of pixels.
+  - With both at 0, the fast vector path and the per-dot SVG stay as before.
 - **Colour**: dot colour; background colour + opacity (0% = transparent PNG / no SVG rect).
 - **Export**: PNG, **SVG** (one `<circle>` per dot in a single `<g fill>`; for video it is the current frame), Copy PNG (Clipboard API).
 - **Video / GIF**: upload uses the shared `#file-input` and frame bar (`showFrame` → `render()` → `renderHalftone()`), so scrub/play just work. When the source has more than one frame, the panel shows **⬤ Video (WebM)** (`exportHalftoneVideo`: MediaRecorder on `#output`, every frame once at its own duration, 12 Mbps) and **🖼 PNG Seq** (`exportHalftonePNGSeq`, ZIP), plus a ■ Stop button. Browsers only record WebM natively, so there is no MP4.
@@ -168,6 +174,7 @@ stippling are guarded with `typeof renderStipple === 'function'`.
 | 5998 / 6011 | `_htTone` / `buildHalftoneDots` | Tone curve; lattice → dots `[x,y,r…]` |
 | 6058 | `renderHalftone()` / `debouncedHalftone` | Builds and draws dots, shows video-export row when the source has frames |
 | 6077 | `htAutoTone`, `htResetTone` | |
+| ~6110 | `_htShapeSDF`, `buildHalftoneField`, `drawHalftoneField`, `_htTracePath`, `_htRDP` | Corners / Neck field renderer and SVG tracer |
 | 6320 | Presets `<script>`: `PRESET_MODES`, `presetSnapshot`, `presetApplySnapshot`, `presetChoose/SaveNew/Update/Revert`, import/export | |
 | 6115–6190 | `exportHalftoneSVG`, `copyHalftonePNG`, `exportHalftoneVideo`, `exportHalftonePNGSeq` | |
 | end | Version switcher | Reads `../manifest.json` |
@@ -205,7 +212,7 @@ live during a preview.
 ## 5. Verification checklist
 1. Open the file. The console should show no errors, the top bar should read `v: v2.2`, and the four tabs should fit on one line.
 2. **Stippling**: drop in an image. Try Vertical/Horizontal, Single bar/Random sections, a different Seed, Divergence, Candle line, and all three colour modes.
-3. **Halftone**: drop in an image, switch tab. Try Square/Hexagonal, Spacing, Rotation 45°, every Dot shape, Brightness/Noise/Gamma/Contrast/Blur, Auto Tone and ↺, Clamp, Invert, colours. Export PNG, SVG, Copy PNG. Drop in a short video: scrub/play updates the dots; Video (WebM) downloads the whole clip; PNG Seq downloads a ZIP.
+3. **Halftone**: drop in an image, switch tab. Try Square/Hexagonal, Spacing, Rotation 45°, every Dot shape, Corners + Neck (Diamond: rounded diamonds, then merged shapes with soft holes; SVG matches), Brightness/Noise/Gamma/Contrast/Blur, Auto Tone and ↺, Clamp, Invert, colours. Export PNG, SVG, Copy PNG. Drop in a short video: scrub/play updates the dots; Video (WebM) downloads the whole clip; PNG Seq downloads a ZIP.
 4. **Presets** on each tab: Save new → change a control (status shows Modified) → Revert / Update. Switch tabs: the dropdown lists only that tab's presets. Export all, delete one, import the file back. Reload the page: presets are still there.
 5. Stippling: preview Grow → (L→R) with Motion Wave, then Flicker in + Random order + Motion Flicker. Pause, resume and stop.
 6. Stippling: export PNG, SVG, WebM (Rec. secs 2) and a PNG sequence.
@@ -217,7 +224,7 @@ live during a preview.
 - New **Halftone** tab with everything in §1D (image/video → dot grid; PNG, SVG, Copy PNG, WebM, PNG sequence).
 - `setOutputMode` handles four modes; `render()` forwards to `renderHalftone()` in halftone mode.
 - Mode-banner font is 11px so four tabs fit on one line.
-- Halftone: dots overlap in dark areas (100% Dot size covers the cell), Brightness, Noise, and five dot shapes.
+- Halftone: dots overlap in dark areas (100% Dot size covers the cell), Brightness, Noise, five dot shapes, and Corners + Neck (distance-field merging).
 - **Presets** for all four tabs (save / load / update / revert / rename / delete / export + import .json).
 - Version switcher works when the file is opened from disk (built-in fallback list).
 
