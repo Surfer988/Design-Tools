@@ -41,7 +41,7 @@ into any AI chat to bring that chat up to speed.
 | v1 | 2026-05-19 | Original stable. Dither (phrase / density / **pattern**) and SVG Fill |
 | v2 | 2026-11-05 | v1 merged with later work: colour picker, multiple text blocks, raster masks |
 | v2.1 | 2026-11-05 | New **Stippling** tab: image → bars, candle lines, seeded random sections, grow / wave / flicker animation |
-| **v2.2** | 2026-11-09 | New **Halftone** tab: image/video → dot grid (square/hex, spacing, rotation, gamma, contrast, auto tone, clamp); PNG, SVG, WebM, PNG sequence |
+| **v2.2** | 2026-11-10 | New **Halftone** tab: image/video → dot grid (square/hex, 5 dot shapes, spacing, rotation, tone controls, auto tone); PNG, SVG, WebM, PNG sequence. **Presets** on every tab |
 
 Each version is also a git tag (`git checkout v1`). The tag `pre-cleanup`
 holds the old loose copies (`index.html`, `beta.html`, `image-processing.html`).

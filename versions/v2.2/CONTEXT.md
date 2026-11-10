@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Version** | v2.2 (current) · 2026-11-09 |
+| **Version** | v2.2 (current) · 2026-11-10 |
 | **File** | `versions/v2.2/halftone.html`, a single file with no build step and no dependencies (~6,200 lines of HTML + CSS + vanilla JS) |
 | **Built from** | v2.1 (ASCII Dithering, SVG Fill, Stippling) plus a fourth tab, **Halftone**, which turns an image or video into a grid of dots |
 | **Run** | Open the file in Chrome/Safari, or serve the repo root (`python3 -m http.server 7823`) and open `/versions/v2.2/halftone.html` |
@@ -96,18 +96,26 @@ prefixed `ht-`, deliberately few controls. Lives in its own `<script>` block
 
 - **Canvas & Adjustments**:
   - **Fit mode**: Fit to short edge / long edge. **Base res.** = that edge's size in output px, so it sets the output size.
-  - **Blur** (output px, applied with `ctx.filter` on the sampling canvas), **Gamma** (0.2–3; higher = bigger dots), **Contrast** (−1…1, around mid-grey).
+  - **Blur** (output px, applied with `ctx.filter` on the sampling canvas), **Brightness** (−1…1, subtracted from darkness), **Noise** (0–100%, a fixed per-grid-cell random tone offset from `_htHash(i, j)`, so it doesn't change between renders or video frames), **Gamma** (0.2–3; higher = bigger dots), **Contrast** (−1…1, around mid-grey).
   - **Clamp min / max**: darkness levels. Below min = no dot, above max = full dot.
   - Tone pipeline (`_htTone`): clamp (levels) → contrast → gamma → invert.
   - **Auto Tone** (`htAutoTone`): clamp = 2nd/98th percentile of darkness, contrast 0, gamma so the median lands on 50%. **↺** (`htResetTone`) restores the defaults.
   - **Invert**.
 - **Grid**: **Square / Hexagonal** (`ht.grid`), **Spacing** (px between dot centres), **Rotation** (−90…90°, about the image centre), **Dot size** (10–200%; 100% = at full black the dot covers its whole cell, radius sp/√2 square or sp/√3 hex, so dark dots **overlap** like print halftone; ~70% = dots just touch).
+- **Dot shape** (`ht.shape`, `htSetShape`): Circle, Square, Diamond, Ellipse (1.25 × 0.8 of the circle radius, same area), Line (cell-long bars whose thickness follows tone, so neighbours join into lines). All shapes turn with the grid Rotation. The stored size per dot depends on the shape (radius, half side, half diagonal or half thickness); `_htPoly` gives corner points for square/diamond/line, which the canvas and SVG (`<polygon>`, `<ellipse transform=rotate>`) share.
 - **Colour**: dot colour; background colour + opacity (0% = transparent PNG / no SVG rect).
 - **Export**: PNG, **SVG** (one `<circle>` per dot in a single `<g fill>`; for video it is the current frame), Copy PNG (Clipboard API).
 - **Video / GIF**: upload uses the shared `#file-input` and frame bar (`showFrame` → `render()` → `renderHalftone()`), so scrub/play just work. When the source has more than one frame, the panel shows **⬤ Video (WebM)** (`exportHalftoneVideo`: MediaRecorder on `#output`, every frame once at its own duration, 12 Mbps) and **🖼 PNG Seq** (`exportHalftonePNGSeq`, ZIP), plus a ■ Stop button. Browsers only record WebM natively, so there is no MP4.
 - **Engine**: `_htDarkness` draws the source into a sampling canvas capped at 900 px on the long side (darkness = (1 − luminance) × alpha). `buildHalftoneDots` walks the lattice in rotated space, samples bilinearly, and returns a flat `Float32Array` `[x, y, r, …]` with `r = rMax·√tone` (dots under 0.3 px dropped). `drawHalftone` fills all dots in one path.
 
 ### Shared controls (all tabs)
+- **Presets** (`#preset-bar` under the tab buttons, last `<script>` block before `#cp-popup`): save the current tab's settings under a name, load them later, adjust, then **Update** (overwrite the preset) or just export without saving. **Revert** goes back to the loaded preset; **＋ Save new** saves a copy. The status line shows "● Modified" when the panel differs from the loaded preset. The ⋯ menu has Rename, Delete, **Export all presets (.json)** and **Import presets (.json)** (merges; same-name imports get " (2)").
+  - Each preset belongs to one tab (`mode`); the dropdown lists only the current tab's presets.
+  - Snapshot = every id'd `input`/`select`/`textarea` in the tab's panel roots (`PRESET_MODES[mode].roots`) + tab state from `PRESET_MODES[mode].get()`: dither `renderMode`/`algo`/`animMode`/palette/all band arrays; SVG Fill text blocks (HTML, sanitised on load by `_presetCleanHTML`), fill order and animation toggles; Stippling toggle keys, palette, band colours, curves; Halftone grid + shape.
+  - Applying sets each control and fires its `input` + `change` events (so labels and renders update), re-asserts the values, then calls `set()`.
+  - Not saved: the source image/video, an SVG Fill shape, the dither Pattern SVG. Custom fonts are stored separately already.
+  - Storage: `localStorage['halftone_presets_v1']` = `[{ id, name, mode, savedAt, snap: { controls, state } }]`. Export file: `{ app: 'halftone-dither', kind: 'presets', version: 1, presets: [...] }`.
+- **Version switcher** (top right): reads `../manifest.json`. When the file is opened straight from disk (`file://`) that fetch is blocked, so v2.2 falls back to a built-in list of versions.
 - **Type a slider value**: click any value label next to a slider (`.slider-val`), type a number, and press Enter (Esc cancels, clicking away applies). The label may show a scaled value (%, s, px, fps), so the label-to-slider mapping (`label = a + b * raw`) is measured once per slider by firing its own `oninput` (`_svMap`). Values are clamped to the slider's min/max. A value between the slider's steps is kept exactly by loosening `step` (to `1`, or `any` for decimals).
 - **Colour inputs**: every `<input type="color">` opens the app's own hex picker (`#cp-popup`) instead of the browser's, whose RGB/HSL/hex mode can't be set by the page. A document-level capture `click` listener calls `openCP(inputEl, inputEl)`. For input targets, the popup gets the `.cp-solid` class (no opacity row), and `_cpApply` writes the hex back and fires the input's `input`/`change` events. The hex field accepts `#rrggbb`, `rrggbb` or `#rgb`. There is an eyedropper button (EyeDropper API, hidden where unsupported). The popup closes on an outside click or when a panel scrolls.
 
@@ -160,6 +168,7 @@ stippling are guarded with `typeof renderStipple === 'function'`.
 | 5998 / 6011 | `_htTone` / `buildHalftoneDots` | Tone curve; lattice → dots `[x,y,r…]` |
 | 6058 | `renderHalftone()` / `debouncedHalftone` | Builds and draws dots, shows video-export row when the source has frames |
 | 6077 | `htAutoTone`, `htResetTone` | |
+| 6320 | Presets `<script>`: `PRESET_MODES`, `presetSnapshot`, `presetApplySnapshot`, `presetChoose/SaveNew/Update/Revert`, import/export | |
 | 6115–6190 | `exportHalftoneSVG`, `copyHalftonePNG`, `exportHalftoneVideo`, `exportHalftonePNGSeq` | |
 | end | Version switcher | Reads `../manifest.json` |
 
@@ -180,6 +189,7 @@ live during a preview.
 ## 3. How to extend
 - **New animation curve**: add a `<details class="st-curve" data-curve="name" data-label="…">` in the panel, a default in `ST_CURVE_DEFAULTS`, and call `_stCurve('name', p)` where it applies. New presets go in `ST_CURVE_PRESETS`.
 - **New stippling animation**: add a branch in `_stBarK`. It returns a length multiplier, or `-1` to hide the bar. Then add a `data-stg="motion"` (or `intro`) button, and any rows with `data-st-show="motion:yourname"`. No other wiring is needed.
+- **New preset-able state**: plain id'd controls inside a tab's panel are saved automatically. State kept in JS variables needs adding to that tab's `PRESET_MODES[mode].get/set`.
 - **New halftone control**: add an `ht-` input with `oninput="htSv(this,'unit')"`, read it in `getHalftoneSettings()`, and use it in `_htTone` / `buildHalftoneDots` / `drawHalftone`.
 - **New stippling control**: add an `st-` input with `oninput="stSv(this,'unit')"`, read it in `getStippleSettings()`, and use it in `buildStippleBars` or `drawStippleFrame`.
 - **New SVG Fill text effect**: add an entry to `SVGFILL_TEXT_EFFECTS`. The `t = 1` state must look exactly like a plain draw.
@@ -195,17 +205,21 @@ live during a preview.
 ## 5. Verification checklist
 1. Open the file. The console should show no errors, the top bar should read `v: v2.2`, and the four tabs should fit on one line.
 2. **Stippling**: drop in an image. Try Vertical/Horizontal, Single bar/Random sections, a different Seed, Divergence, Candle line, and all three colour modes.
-3. **Halftone**: drop in an image, switch tab. Try Square/Hexagonal, Spacing, Rotation 45°, Gamma/Contrast/Blur, Auto Tone and ↺, Clamp, Invert, colours. Export PNG, SVG, Copy PNG. Drop in a short video: scrub/play updates the dots; Video (WebM) downloads the whole clip; PNG Seq downloads a ZIP.
-4. Stippling: preview Grow → (L→R) with Motion Wave, then Flicker in + Random order + Motion Flicker. Pause, resume and stop.
-5. Stippling: export PNG, SVG, WebM (Rec. secs 2) and a PNG sequence.
-6. Switch to ASCII Dithering: the image should re-render as dither, and a running stippling preview should stop.
-7. Click a slider's value label, type a number and press Enter; the slider should move. Click any colour swatch; the hex picker should open.
-8. **ASCII and SVG Fill regression**: follow the v2 checks (Pattern mode, colour picker, two text blocks, a raster mask).
+3. **Halftone**: drop in an image, switch tab. Try Square/Hexagonal, Spacing, Rotation 45°, every Dot shape, Brightness/Noise/Gamma/Contrast/Blur, Auto Tone and ↺, Clamp, Invert, colours. Export PNG, SVG, Copy PNG. Drop in a short video: scrub/play updates the dots; Video (WebM) downloads the whole clip; PNG Seq downloads a ZIP.
+4. **Presets** on each tab: Save new → change a control (status shows Modified) → Revert / Update. Switch tabs: the dropdown lists only that tab's presets. Export all, delete one, import the file back. Reload the page: presets are still there.
+5. Stippling: preview Grow → (L→R) with Motion Wave, then Flicker in + Random order + Motion Flicker. Pause, resume and stop.
+6. Stippling: export PNG, SVG, WebM (Rec. secs 2) and a PNG sequence.
+7. Switch to ASCII Dithering: the image should re-render as dither, and a running stippling preview should stop.
+8. Click a slider's value label, type a number and press Enter; the slider should move. Click any colour swatch; the hex picker should open.
+9. **ASCII and SVG Fill regression**: follow the v2 checks (Pattern mode, colour picker, two text blocks, a raster mask).
 
 ## 6. Changes from v2.1
 - New **Halftone** tab with everything in §1D (image/video → dot grid; PNG, SVG, Copy PNG, WebM, PNG sequence).
 - `setOutputMode` handles four modes; `render()` forwards to `renderHalftone()` in halftone mode.
 - Mode-banner font is 11px so four tabs fit on one line.
+- Halftone: dots overlap in dark areas (100% Dot size covers the cell), Brightness, Noise, and five dot shapes.
+- **Presets** for all four tabs (save / load / update / revert / rename / delete / export + import .json).
+- Version switcher works when the file is opened from disk (built-in fallback list).
 
 ## 7. Changes from v2 (in v2.1)
 - New **Stippling** tab with everything in §1C.

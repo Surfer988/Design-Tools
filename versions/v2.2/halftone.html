@@ -27,6 +27,26 @@ body {
 
 #fixed-top { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
 
+/* ── Presets ── */
+#preset-bar { display: flex; flex-direction: column; gap: 5px; }
+.preset-row { display: flex; gap: 5px; align-items: center; }
+.preset-lbl { font-size: 10px; color: #666; letter-spacing: 0.06em; text-transform: uppercase; flex: 0 0 auto; }
+#preset-sel { flex: 1; min-width: 0; background: #1e1e1e; border: 1px solid #333; border-radius: 4px; color: #ccc; font-size: 11px; padding: 4px 6px; }
+.preset-btn { flex: 1; background: #1e1e1e; border: 1px solid #333; border-radius: 4px; color: #aaa; font-size: 11px; padding: 4px 6px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.preset-btn:hover:not(:disabled) { background: #2a2a2a; color: #ddd; }
+.preset-btn:disabled { opacity: 0.35; cursor: default; }
+#preset-more-wrap { position: relative; flex: 0 0 auto; }
+#preset-more-wrap .preset-btn { padding: 4px 9px; }
+#preset-menu { display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; min-width: 190px;
+  background: #1c1c1c; border: 1px solid #383838; border-radius: 6px; padding: 4px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+#preset-menu.open { display: block; }
+#preset-menu button { display: block; width: 100%; text-align: left; background: none; border: none; color: #bbb; font-size: 12px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+#preset-menu button:hover:not(:disabled) { background: #2a2a2a; color: #fff; }
+#preset-menu button:disabled { opacity: 0.35; cursor: default; }
+#preset-menu hr { border: none; border-top: 1px solid #2c2c2c; margin: 4px 0; }
+#preset-status { font-size: 10px; color: #555; min-height: 12px; }
+#preset-status.dirty { color: #d9a441; }
+
 /* ── Upload ───────────────────────────────────────────────────────────────── */
 
 #upload-area {
@@ -470,6 +490,7 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
 #halftone-panel .slider-row input[type=range] { flex: 1; min-width: 0; accent-color: #777; cursor: pointer; }
 #halftone-panel .slider-val { font-variant-numeric: tabular-nums; }
 #halftone-panel .toggle-btn { padding-left: 4px; padding-right: 4px; }
+.ht-shapes .toggle-btn { font-size: 14px; }
 .ht-row { display: flex; gap: 6px; align-items: center; }
 .ht-row .export-btn { flex: 1; }
 #stipple-panel .slider-row .slider-lbl { min-width: 78px; }
@@ -517,6 +538,30 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
       <button class="mode-banner-btn" id="omBtn-svgfill" onclick="setOutputMode('svgfill')">SVG Fill</button>
       <button class="mode-banner-btn" id="omBtn-stipple" onclick="setOutputMode('stipple')">Stippling</button>
       <button class="mode-banner-btn" id="omBtn-halftone" onclick="setOutputMode('halftone')">Halftone</button>
+    </div>
+
+    <div id="preset-bar">
+      <div class="preset-row">
+        <span class="preset-lbl">Preset</span>
+        <select id="preset-sel" onchange="presetChoose(this.value)"></select>
+        <div id="preset-more-wrap">
+          <button class="preset-btn" title="More" onclick="event.stopPropagation();$('preset-menu').classList.toggle('open')">⋯</button>
+          <div id="preset-menu">
+            <button id="preset-rename" onclick="presetRename()">Rename…</button>
+            <button id="preset-delete" onclick="presetDelete()">Delete</button>
+            <hr>
+            <button onclick="presetExportFile()">Export all presets (.json)</button>
+            <button onclick="$('preset-file').click()">Import presets (.json)…</button>
+          </div>
+          <input type="file" id="preset-file" accept=".json,application/json" style="display:none" onchange="presetImportFile(this.files[0])">
+        </div>
+      </div>
+      <div class="preset-row">
+        <button class="preset-btn" id="preset-update" onclick="presetUpdate()" title="Overwrite the loaded preset with the current settings">Update</button>
+        <button class="preset-btn" id="preset-revert" onclick="presetRevert()" title="Go back to the loaded preset">Revert</button>
+        <button class="preset-btn" onclick="presetSaveNew()" title="Save the current settings as a new preset">＋ Save new</button>
+      </div>
+      <div id="preset-status"></div>
     </div>
   </div>
 
@@ -1308,6 +1353,10 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
         <input type="range" id="ht-res" min="100" max="4000" step="10" value="1000" oninput="htSv(this,'px')"><span class="slider-val">1000px</span></div>
       <div class="slider-row"><span class="slider-lbl">Blur</span>
         <input type="range" id="ht-blur" min="0" max="30" step="0.5" value="0" oninput="htSv(this,'')"><span class="slider-val">0</span></div>
+      <div class="slider-row"><span class="slider-lbl">Brightness</span>
+        <input type="range" id="ht-bright" min="-1" max="1" step="0.05" value="0" oninput="htSv(this,'')"><span class="slider-val">0</span></div>
+      <div class="slider-row" title="Random variation in dot size (same pattern every time)"><span class="slider-lbl">Noise</span>
+        <input type="range" id="ht-noise" min="0" max="100" value="0" oninput="htSv(this,'%')"><span class="slider-val">0%</span></div>
       <div class="slider-row"><span class="slider-lbl">Gamma</span>
         <input type="range" id="ht-gamma" min="0.2" max="3" step="0.05" value="1" oninput="htSv(this,'')"><span class="slider-val">1</span></div>
       <div class="slider-row"><span class="slider-lbl">Contrast</span>
@@ -1335,6 +1384,18 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
         <input type="range" id="ht-rot" min="-90" max="90" value="0" oninput="htSv(this,'°')"><span class="slider-val">0°</span></div>
       <div class="slider-row" title="Dot size at full black. 100% = the dot covers its whole cell, so dark dots overlap; ~70% = dots only just touch"><span class="slider-lbl">Dot size</span>
         <input type="range" id="ht-dot" min="10" max="200" value="100" oninput="htSv(this,'%')"><span class="slider-val">100%</span></div>
+    </div>
+
+    <div class="ds">
+      <div class="section-label"><span class="section-label-text">Dot shape</span></div>
+      <div class="toggle-group ht-shapes">
+        <button class="toggle-btn active" data-htg="shape" data-val="circle"  onclick="htSetShape('circle')"  title="Circle">●</button>
+        <button class="toggle-btn" data-htg="shape" data-val="square"  onclick="htSetShape('square')"  title="Square">■</button>
+        <button class="toggle-btn" data-htg="shape" data-val="diamond" onclick="htSetShape('diamond')" title="Diamond">◆</button>
+        <button class="toggle-btn" data-htg="shape" data-val="ellipse" onclick="htSetShape('ellipse')" title="Ellipse">⬬</button>
+        <button class="toggle-btn" data-htg="shape" data-val="line"    onclick="htSetShape('line')"    title="Lines">≡</button>
+      </div>
+      <div class="hint">Shapes turn with the grid Rotation</div>
     </div>
 
     <div class="ds">
@@ -5907,7 +5968,14 @@ async function exportStipplePNGSeq() {
       dir: v.dir.toLowerCase(), note: [v.savedAt, v.note].filter(Boolean).join(' · '),
     }));
   } catch {}
-  if (!items.length) items = [{ name: curDir || '?', href: 'halftone.html', dir: curDir, note: '' }];
+  // Opened straight from disk (file://) the browser blocks the fetch — fall back to the
+  // list as it was when this version was saved (keep in sync with versions/manifest.json).
+  if (!items.length) items = [
+    ['v1', '2026-05-19 · Original stable · Pattern mode'],
+    ['v2', '2026-11-05 · Merged · colour picker, multi-block, Pattern mode'],
+    ['v2.1', '2026-11-05 · Stippling tab · image → bars'],
+    ['v2.2', '2026-11-10 · Halftone tab · image/video → dots, presets'],
+  ].map(([name, note]) => ({ name, href: '../' + name + '/halftone.html', dir: name, note }));
 
   const currentItem = items.find(i => i.dir === curDir) || items[items.length - 1];
   cur.textContent = currentItem.name;
@@ -5936,7 +6004,7 @@ async function exportStipplePNGSeq() {
 <!-- ═══ HALFTONE (v2.2) ═══ image / video → grid of dots sized by darkness.
      Own <script>, like Stippling: render() and setOutputMode() call in with a typeof guard. -->
 <script>
-const ht = { grid: 'square', dots: null, n: 0, W: 0, H: 0, s: null, exporting: false, stop: false };
+const ht = { grid: 'square', shape: 'circle', dots: null, n: 0, W: 0, H: 0, s: null, exporting: false, stop: false };
 
 function htSv(el, unit) {
   const lbl = el.nextElementSibling;
@@ -5949,6 +6017,12 @@ function htSetGrid(g) {
     .forEach(b => b.classList.toggle('active', b.dataset.val === g));
   debouncedHalftone();
 }
+function htSetShape(sh, noRender) {
+  ht.shape = sh;
+  document.querySelectorAll('#halftone-panel [data-htg="shape"]')
+    .forEach(b => b.classList.toggle('active', b.dataset.val === sh));
+  if (!noRender) debouncedHalftone();
+}
 function _htSetSlider(id, v) {
   const el = $(id); el.value = v; el.oninput();
 }
@@ -5957,6 +6031,7 @@ function getHalftoneSettings() {
   return {
     fit: $('ht-fit').value, res: n('ht-res'), blur: n('ht-blur'),
     gamma: n('ht-gamma'), contrast: n('ht-contrast'),
+    bright: n('ht-bright'), noise: n('ht-noise') / 100, shape: ht.shape,
     cmin: n('ht-cmin'), cmax: Math.max(n('ht-cmax'), n('ht-cmin') + 0.01),
     invert: $('ht-invert').checked, grid: ht.grid,
     spacing: n('ht-spacing'), rot: n('ht-rot') * Math.PI / 180, dot: n('ht-dot') / 100,
@@ -5996,6 +6071,7 @@ function _htDarkness(s, W, H) {
 
 // Tone curve: clamp (levels) → contrast → gamma, then invert.
 function _htTone(v, s) {
+  v -= s.bright;                                  // brightness: lighter image = less ink
   v = (v - s.cmin) / (s.cmax - s.cmin);
   if (v <= 0) return s.invert ? 1 : 0;
   if (v > 1) v = 1;
@@ -6025,6 +6101,15 @@ function buildHalftoneDots(s) {
   // 100% = full black covers the whole cell, so neighbouring dots overlap in dark
   // areas (as in print halftone): square cell corner is sp/√2 away, hex is sp/√3.
   const rMax = (hex ? sp / Math.sqrt(3) : sp / Math.SQRT2) * s.dot;
+  // The stored size per shape (area tracks tone; 100% = covers the cell where it can):
+  //   circle/ellipse: radius · square: half side · diamond: half diagonal · line: half thickness
+  const size = {
+    circle:  t => rMax * Math.sqrt(t),
+    ellipse: t => rMax * Math.sqrt(t),
+    square:  t => sp / 2 * s.dot * Math.sqrt(t) * 1.01,
+    diamond: t => sp * s.dot * Math.sqrt(t / 2) * 1.42,
+    line:    t => sp / 2 * s.dot * t,
+  }[s.shape] || (t => rMax * Math.sqrt(t));
   const cx = W / 2, cy = H / 2, R = Math.hypot(W, H) / 2 + sp;
   const cos = Math.cos(s.rot), sin = Math.sin(s.rot);
   const out = [];
@@ -6035,9 +6120,10 @@ function buildHalftoneDots(s) {
       const u = i * sp + off;
       const x = cx + u * cos - v * sin, y = cy + u * sin + v * cos;
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const t = _htTone(sample(x, y), s);
+      let t = _htTone(sample(x, y), s);
+      if (s.noise && t > 0) t = Math.min(1, Math.max(0, t + (_htHash(i, j) - 0.5) * s.noise));
       if (t <= 0) continue;
-      const r = rMax * Math.sqrt(t);          // area tracks tone
+      const r = size(t);
       if (r < 0.3) continue;
       out.push(x, y, r);
     }
@@ -6045,14 +6131,42 @@ function buildHalftoneDots(s) {
   return { dots: new Float32Array(out), W, H, D };
 }
 
+function _htHash(i, j) {
+  let h = Math.imul(i ^ 0x9E3779B9, 0x85EBCA6B) ^ Math.imul(j + 0x632BE5AB, 0xC2B2AE35);
+  h ^= h >>> 13; h = Math.imul(h, 0x27D4EB2F); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+// Corner points of a rotated (non-circle) dot, or null for circle/ellipse.
+const HT_ELLIPSE = [1.25, 0.8];                     // rx, ry factors (same area as the circle)
+function _htPoly(shape, x, y, r, s) {
+  const c = Math.cos(s.rot), n = Math.sin(s.rot);
+  const P = (a, b) => [x + a * c - b * n, y + a * n + b * c];
+  if (shape === 'square')  return [P(-r, -r), P(r, -r), P(r, r), P(-r, r)];
+  if (shape === 'diamond') return [P(0, -r), P(r, 0), P(0, r), P(-r, 0)];
+  if (shape === 'line') { const L = s.spacing / 2 + 0.3; return [P(-L, -r), P(L, -r), P(L, r), P(-L, r)]; }
+  return null;
+}
 function drawHalftone(ctx, s, dots, W, H) {
   ctx.clearRect(0, 0, W, H);
   if (s.bgOpa > 0) { ctx.globalAlpha = s.bgOpa; ctx.fillStyle = s.bgCol; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
   ctx.fillStyle = s.dotCol;
   ctx.beginPath();
+  const sh = s.shape;
   for (let i = 0; i < dots.length; i += 3) {
-    ctx.moveTo(dots[i] + dots[i + 2], dots[i + 1]);
-    ctx.arc(dots[i], dots[i + 1], dots[i + 2], 0, Math.PI * 2);
+    const x = dots[i], y = dots[i + 1], r = dots[i + 2];
+    if (sh === 'ellipse') {
+      const rx = r * HT_ELLIPSE[0];
+      ctx.moveTo(x + rx * Math.cos(s.rot), y + rx * Math.sin(s.rot));
+      ctx.ellipse(x, y, rx, r * HT_ELLIPSE[1], s.rot, 0, Math.PI * 2);
+    } else if (sh === 'circle' || !sh) {
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    } else {
+      const p = _htPoly(sh, x, y, r, s);
+      ctx.moveTo(p[0][0], p[0][1]);
+      for (let k = 1; k < p.length; k++) ctx.lineTo(p[k][0], p[k][1]);
+      ctx.closePath();
+    }
   }
   ctx.fill();
 }
@@ -6095,6 +6209,7 @@ function htAutoTone() {
 function htResetTone() {
   _htSetSlider('ht-gamma', 1); _htSetSlider('ht-contrast', 0);
   _htSetSlider('ht-cmin', 0); _htSetSlider('ht-cmax', 1); _htSetSlider('ht-blur', 0);
+  _htSetSlider('ht-bright', 0); _htSetSlider('ht-noise', 0);
 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────
@@ -6121,8 +6236,16 @@ function exportHalftoneSVG() {
   const parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`];
   if (s.bgOpa > 0) parts.push(`<rect width="${W}" height="${H}" fill="${s.bgCol}"${s.bgOpa < 1 ? ` fill-opacity="${s.bgOpa}"` : ''}/>`);
   parts.push(`<g fill="${s.dotCol}">`);
-  for (let i = 0; i < dots.length; i += 3)
-    parts.push(`<circle cx="${f(dots[i])}" cy="${f(dots[i + 1])}" r="${f(dots[i + 2])}"/>`);
+  const deg = f(s.rot * 180 / Math.PI);
+  for (let i = 0; i < dots.length; i += 3) {
+    const x = dots[i], y = dots[i + 1], r = dots[i + 2];
+    if (s.shape === 'ellipse')
+      parts.push(`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(r * HT_ELLIPSE[0])}" ry="${f(r * HT_ELLIPSE[1])}"${deg ? ` transform="rotate(${deg} ${f(x)} ${f(y)})"` : ''}/>`);
+    else if (s.shape === 'circle' || !s.shape)
+      parts.push(`<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}"/>`);
+    else
+      parts.push(`<polygon points="${_htPoly(s.shape, x, y, r, s).map(p => f(p[0]) + ',' + f(p[1])).join(' ')}"/>`);
+  }
   parts.push('</g>', '</svg>');
   dl(URL.createObjectURL(new Blob([parts.join('\n')], { type: 'image/svg+xml' })), 'halftone.svg');
 }
@@ -6189,6 +6312,249 @@ async function exportHalftonePNGSeq() {
   _htExportUI(false);
   renderHalftone();
 }
+</script>
+
+<!-- ═══ PRESETS (v2.2) ═══ save / load / update the current tab's settings.
+     Works for every tab: all id'd form controls in the tab's panel are captured
+     generically, plus each tab's toggle / band / curve state via PRESET_MODES. -->
+<script>
+const PRESET_KEY = 'halftone_presets_v1';
+const PRESET_TAB_NAMES = { video: 'ASCII Dithering', svgfill: 'SVG Fill', stipple: 'Stippling', halftone: 'Halftone' };
+const preset = { list: [], loaded: {}, applying: false };   // loaded[mode] = { id, snap }
+
+// Panel roots per tab (controls inside are captured by id).
+const PRESET_MODES = {
+  video: {
+    roots: ['sections-wrap', 'section-anim', 'section-export-static'],
+    get: () => ({ renderMode, algo, animMode, currentPalette, numBands,
+      bandColors: [...bandColors], bandOpacities: [...bandOpacities], bandModes: [...bandModes],
+      bandBgEnabled: [...bandBgEnabled], bandBgColors: [...bandBgColors],
+      bandMargins: [...bandMargins], bandPatternSizes: [...bandPatternSizes] }),
+    set: x => {
+      setMode(x.renderMode); setAlgo(x.algo);
+      if (x.animMode) setAnimMode(x.animMode);
+      currentPalette = x.currentPalette || '';
+      numBands = x.numBands;
+      bandColors = [...x.bandColors]; bandOpacities = [...x.bandOpacities]; bandModes = [...x.bandModes];
+      bandBgEnabled = [...x.bandBgEnabled]; bandBgColors = [...x.bandBgColors];
+      bandMargins = [...x.bandMargins]; bandPatternSizes = [...x.bandPatternSizes];
+      [4, 6, 8, 12].forEach(v => $(`bc-${v}`)?.classList.toggle('active', v === numBands));
+      buildBandUI(); updatePaletteGrid();
+      debouncedRender();
+    },
+  },
+  svgfill: {
+    roots: ['svgfill-panel'],
+    get: () => ({
+      blocks: [...document.querySelectorAll('#svgfill-blocks-list .svgfill-block-editor')].map(e => e.innerHTML),
+      order: svgFillOrder, animMode: svgFillAnim.mode, animOrder: svgFillAnim.order,
+      revealUnit: svgFillAnim.revealUnit, flickerUnit: svgFillAnim.flickerUnit }),
+    set: x => {
+      const list = $('svgfill-blocks-list');
+      list.innerHTML = '';
+      (x.blocks?.length ? x.blocks : ['Text']).forEach(h => { const ed = addSVGFillBlock(''); ed.innerHTML = _presetCleanHTML(h); });
+      setFillOrder(x.order || 'sequential');
+      setSVGFillAnimMode(x.animMode || 'typing'); setSVGFillAnimOrder(x.animOrder || 'seq');
+      setSVGFillRevealUnit(x.revealUnit || 'char'); setFlickerUnit(x.flickerUnit || 'char');
+      debouncedSVGFillRender();
+    },
+  },
+  stipple: {
+    roots: ['stipple-panel'],
+    keys: ['dir', 'structure', 'snap', 'colorMode', 'bandCount', 'wick', 'wickSame', 'intro', 'order', 'motion', 'waveDir', 'anchor'],
+    get() {
+      const o = { palette: stip.palette, bandColors: [...stip.bandColors], curves: JSON.parse(JSON.stringify(stip.curves)) };
+      this.keys.forEach(k => o[k] = stip[k]);
+      return o;
+    },
+    set(x) {
+      stip.palette = x.palette;
+      this.keys.forEach(k => { if (k in x) stSet(k, x[k], true); });
+      stip.bandColors = [...x.bandColors]; stBuildBandUI();
+      Object.entries(x.curves || {}).forEach(([k, c]) => stSetCurve(k, c));
+      debouncedStipple();
+    },
+  },
+  halftone: {
+    roots: ['halftone-panel'],
+    get: () => ({ grid: ht.grid, shape: ht.shape }),
+    set: x => { htSetGrid(x.grid || 'square'); htSetShape(x.shape || 'circle'); },
+  },
+};
+
+// Rich text from a preset file may come from someone else — keep only formatting.
+function _presetCleanHTML(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const ok = new Set(['SPAN', 'B', 'I', 'U', 'S', 'EM', 'STRONG', 'BR', 'DIV', 'FONT']);
+  const walk = el => [...el.children].forEach(c => {
+    if (!ok.has(c.tagName)) { c.replaceWith(document.createTextNode(c.textContent)); return; }
+    [...c.attributes].forEach(a => { if (!['style', 'color', 'face', 'size'].includes(a.name)) c.removeAttribute(a.name); });
+    if (/url\s*\(|expression/i.test(c.getAttribute('style') || '')) c.removeAttribute('style');
+    walk(c);
+  });
+  const root = doc.body.firstChild; walk(root);
+  return root.innerHTML;
+}
+
+function _presetControls(mode) {
+  const out = {};
+  for (const rid of PRESET_MODES[mode].roots) {
+    const root = $(rid); if (!root) continue;
+    root.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+      if (el.type === 'file' || el.type === 'button') return;
+      out[el.id] = el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value;
+    });
+  }
+  return out;
+}
+function presetSnapshot(mode) {
+  return { controls: _presetControls(mode), state: PRESET_MODES[mode].get() };
+}
+function presetApplySnapshot(mode, snap) {
+  preset.applying = true;
+  try {
+    for (const [id, v] of Object.entries(snap.controls || {})) {
+      const el = $(id); if (!el) continue;
+      if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked === v) continue; el.checked = v; }
+      else { if (el.value === String(v)) continue; el.value = v; }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    // Re-assert values a change handler may have overwritten (e.g. a palette select resetting colours)
+    for (const [id, v] of Object.entries(snap.controls || {})) {
+      const el = $(id); if (!el) continue;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = v; else el.value = v;
+    }
+    if (snap.state) PRESET_MODES[mode].set(snap.state);
+  } finally {
+    setTimeout(() => { preset.applying = false; presetRefreshDirty(); }, 120);
+  }
+}
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+function presetLoadStore() {
+  try { preset.list = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]'); } catch { preset.list = []; }
+  if (!Array.isArray(preset.list)) preset.list = [];
+}
+function presetSaveStore() {
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(preset.list)); return true; }
+  catch (e) { alert('Could not save presets in this browser (' + e.message + '). Use Export to keep them as a file.'); return false; }
+}
+const _presetId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const _presetSame = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// ── UI ───────────────────────────────────────────────────────────────────────
+function presetRefreshUI() {
+  const mode = outputMode, sel = $('preset-sel'), cur = preset.loaded[mode];
+  const mine = preset.list.filter(p => p.mode === mode);
+  sel.innerHTML = '';
+  const none = document.createElement('option');
+  none.value = ''; none.textContent = mine.length ? '— Choose a preset —' : `No ${PRESET_TAB_NAMES[mode]} presets yet`;
+  sel.appendChild(none);
+  mine.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+  sel.value = cur && mine.some(p => p.id === cur.id) ? cur.id : '';
+  if (!sel.value) delete preset.loaded[mode];
+  presetRefreshDirty();
+}
+function presetRefreshDirty() {
+  const cur = preset.loaded[outputMode];
+  const dirty = !!cur && !_presetSame(presetSnapshot(outputMode), cur.snap);
+  $('preset-update').disabled = !dirty;
+  $('preset-revert').disabled = !dirty;
+  $('preset-status').textContent = !cur ? '' : dirty ? '● Modified — Update to keep, or just export' : 'Saved';
+  $('preset-status').classList.toggle('dirty', dirty);
+  ['preset-rename', 'preset-delete'].forEach(id => $(id).disabled = !cur);
+}
+const presetCheckDirty = debounce(() => { if (!preset.applying) presetRefreshDirty(); }, 150);
+
+function presetChoose(id) {
+  const p = preset.list.find(q => q.id === id);
+  if (!p) { delete preset.loaded[outputMode]; presetRefreshDirty(); return; }
+  presetApplySnapshot(p.mode, p.snap);
+  // Compare later edits against what the panel looks like after loading
+  setTimeout(() => { preset.loaded[p.mode] = { id: p.id, snap: presetSnapshot(p.mode) }; presetRefreshDirty(); }, 150);
+  preset.loaded[p.mode] = { id: p.id, snap: p.snap };
+}
+function presetSaveNew() {
+  const mode = outputMode;
+  const name = (prompt(`Name for this ${PRESET_TAB_NAMES[mode]} preset:`, '') || '').trim();
+  if (!name) return;
+  const p = { id: _presetId(), name, mode, savedAt: new Date().toISOString(), snap: presetSnapshot(mode) };
+  preset.list.push(p);
+  if (!presetSaveStore()) { preset.list.pop(); return; }
+  preset.loaded[mode] = { id: p.id, snap: p.snap };
+  presetRefreshUI();
+}
+function presetUpdate() {
+  const cur = preset.loaded[outputMode]; if (!cur) return;
+  const p = preset.list.find(q => q.id === cur.id); if (!p) return;
+  const old = p.snap;
+  p.snap = presetSnapshot(outputMode); p.savedAt = new Date().toISOString();
+  if (!presetSaveStore()) { p.snap = old; return; }
+  cur.snap = p.snap;
+  presetRefreshDirty();
+}
+function presetRevert() {
+  const cur = preset.loaded[outputMode]; if (cur) presetChoose(cur.id);
+}
+function presetRename() {
+  const cur = preset.loaded[outputMode]; if (!cur) return;
+  const p = preset.list.find(q => q.id === cur.id); if (!p) return;
+  const name = (prompt('Rename preset:', p.name) || '').trim();
+  if (!name) return;
+  p.name = name; presetSaveStore(); presetRefreshUI();
+}
+function presetDelete() {
+  const cur = preset.loaded[outputMode]; if (!cur) return;
+  const p = preset.list.find(q => q.id === cur.id); if (!p) return;
+  if (!confirm(`Delete preset "${p.name}"? Export it first if you might want it back.`)) return;
+  preset.list = preset.list.filter(q => q !== p);
+  delete preset.loaded[outputMode];
+  presetSaveStore(); presetRefreshUI();
+}
+function presetExportFile() {
+  if (!preset.list.length) { alert('No presets to export yet.'); return; }
+  const data = { app: 'halftone-dither', kind: 'presets', version: 1, exportedAt: new Date().toISOString(), presets: preset.list };
+  dl(URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })), 'halftone-presets.json');
+}
+function presetImportFile(file) {
+  if (!file) return;
+  file.text().then(txt => {
+    let data;
+    try { data = JSON.parse(txt); } catch { alert('That file is not valid JSON.'); return; }
+    const items = Array.isArray(data) ? data : data?.presets;
+    if (!Array.isArray(items)) { alert('No presets found in that file.'); return; }
+    let n = 0;
+    for (const p of items) {
+      if (!p || !PRESET_MODES[p.mode] || !p.snap || typeof p.name !== 'string') continue;
+      const exists = preset.list.find(q => q.id === p.id);
+      if (exists && _presetSame(exists.snap, p.snap)) continue;          // already have it
+      let name = p.name.slice(0, 80), k = 2;
+      while (preset.list.some(q => q.mode === p.mode && q.name === name)) name = `${p.name.slice(0, 74)} (${k++})`;
+      preset.list.push({ id: _presetId(), name, mode: p.mode, savedAt: p.savedAt || new Date().toISOString(),
+        snap: { controls: p.snap.controls || {}, state: p.snap.state || null } });
+      n++;
+    }
+    presetSaveStore(); presetRefreshUI();
+    alert(n ? `Imported ${n} preset${n > 1 ? 's' : ''}.` : 'Nothing new to import.');
+  });
+  $('preset-file').value = '';
+}
+
+(function initPresets() {
+  presetLoadStore();
+  presetRefreshUI();
+  const sb = $('sidebar');
+  ['input', 'change', 'click', 'pointerup'].forEach(ev => sb.addEventListener(ev, e => {
+    if (e.target.closest('#preset-bar')) return;
+    presetCheckDirty();
+  }, true));
+  // setOutputMode lives in the main script — refresh the list whenever the tab changes
+  const _som = setOutputMode;
+  window.setOutputMode = function (m) { _som(m); presetRefreshUI(); };
+  // Close the ⋯ menu on outside click
+  document.addEventListener('click', e => { if (!e.target.closest('#preset-more-wrap')) $('preset-menu').classList.remove('open'); });
+})();
 </script>
 
 <div id="cp-popup">

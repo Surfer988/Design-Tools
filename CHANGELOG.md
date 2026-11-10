@@ -1,12 +1,15 @@
 # Changelog
 
-## v2.2 — 2026-11-09
+## v2.2 — 2026-11-10
 New **Halftone** tab (image or video → dots, like halftonemaker.com):
 - Canvas & Adjustments: fit to short/long edge, base resolution, blur, gamma, contrast, Auto Tone + reset, clamp min/max, invert.
 - Grid: square or hexagonal, spacing, rotation, dot size.
 - Colour: dot colour, background colour and opacity.
 - Exports: PNG, SVG (one circle per dot), Copy PNG; for video/GIF sources, WebM video and PNG sequence of the whole clip.
 - Mode banner font slightly smaller so four tabs fit.
+- Dots overlap in dark areas like print halftone; Brightness and Noise; dot shapes circle, square, diamond, ellipse and line.
+- **Presets** on every tab: save the current settings by name, load, adjust, then Update the preset or just export. Rename, delete, export/import as .json.
+- Version switcher now lists all versions even when the file is opened straight from disk.
 
 ## v2.1 — 2026-11-05
 New **Stippling** tab (image → bars):
