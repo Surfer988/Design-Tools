@@ -8,6 +8,7 @@ New **Halftone** tab (image or video → dots, like halftonemaker.com):
 - Exports: PNG, SVG (one circle per dot), Copy PNG; for video/GIF sources, WebM video and PNG sequence of the whole clip.
 - Mode banner font slightly smaller so four tabs fit.
 - Dots overlap in dark areas like print halftone; Brightness and Noise; dot shapes circle, square, diamond, ellipse and line.
+- **Animation** on the Halftone tab: animate Spacing, Dot size, Rotation, Corners, Neck, Brightness, Gamma, Contrast or Noise between two values, each with its own period, ping-pong/loop and curve editor. Preview, WebM, PNG sequence; video exports carry the animation; presets save the tracks.
 - **Corners** and **Neck**: round each dot's corners, and merge overlapping dots into one smooth shape with rounded inside corners and soft holes (canvas and SVG).
 - **Presets** on every tab: save the current settings by name, load, adjust, then Update the preset or just export. Rename, delete, export/import as .json.
 - Version switcher now lists all versions even when the file is opened straight from disk.

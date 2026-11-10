@@ -491,6 +491,15 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
 #halftone-panel .slider-val { font-variant-numeric: tabular-nums; }
 #halftone-panel .toggle-btn { padding-left: 4px; padding-right: 4px; }
 .ht-shapes .toggle-btn { font-size: 14px; }
+.ht-track { border: 1px solid #2a2a2a; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; background: #1a1a1a; }
+.ht-track-head { display: flex; align-items: center; justify-content: space-between; }
+.ht-track-head b { color: #ccc; font-weight: 600; }
+.ht-track-x { background: none; border: none; color: #666; font-size: 16px; cursor: pointer; padding: 0 4px; }
+.ht-track-x:hover { color: #ddd; }
+.ht-track-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #777; }
+.ht-track-row .st-num { width: 0; }
+.ht-unit { flex: 0 0 auto; min-width: 12px; }
+#ht-tracks { display: flex; flex-direction: column; gap: 6px; }
 .ht-row { display: flex; gap: 6px; align-items: center; }
 .ht-row .export-btn { flex: 1; }
 #stipple-panel .slider-row .slider-lbl { min-width: 78px; }
@@ -1413,6 +1422,25 @@ canvas#output { display: block; image-rendering: pixelated; box-shadow: 0 4px 24
     </div>
 
     <div class="ds">
+      <div class="section-label"><span class="section-label-text">Animation</span></div>
+      <div id="ht-tracks"></div>
+      <select id="ht-add-track" class="st-select"><option value="">＋ Animate a property…</option></select>
+      <div class="slider-row" title="Length of the WebM / PNG sequence"><span class="slider-lbl">Rec. length</span>
+        <input type="range" id="ht-recdur" min="1" max="60" step="0.5" value="4" oninput="htSv(this,'s')"><span class="slider-val">4s</span></div>
+      <div class="hint">Seamless loop: make Rec. length a multiple of every Period. With a video source, the Video export below plays the animation too.</div>
+      <div class="anim-btns" id="ht-anim-start">
+        <button class="anim-btn" id="ht-btn-play" disabled onclick="htStartAnim(false)">▶ Preview</button>
+        <button class="anim-btn anim-rec" id="ht-btn-anim-webm" disabled onclick="htStartAnim(true)">⬤ WebM</button>
+        <button class="anim-btn" id="ht-btn-anim-seq" disabled onclick="htExportAnimPNGSeq()" style="font-size:11px">🖼 PNG Seq</button>
+      </div>
+      <div class="anim-btns" id="ht-anim-stop" style="display:none">
+        <button class="anim-btn" id="ht-btn-anim-pause" onclick="htToggleAnimPause()">⏸ Pause</button>
+        <button class="anim-btn anim-stop" onclick="htStopAnim()">■ Stop</button>
+      </div>
+      <div class="rec-progress" id="ht-anim-progress" style="display:none"><div class="rec-bar" id="ht-anim-bar"></div></div>
+    </div>
+
+    <div class="ds">
       <div class="section-label"><span class="section-label-text">Export</span></div>
       <div class="svgfill-export-row">
         <button class="export-btn" id="ht-btn-png" disabled onclick="exportHalftonePNG()">PNG</button>
@@ -1721,6 +1749,7 @@ function setOutputMode(m) {
   // Skipped at boot (prev === m), when svgFillAnim is still in its TDZ.
   if (prev !== m) {
     if (!isStipple && typeof stopStippleAnim === 'function') stopStippleAnim();
+    if (!isHalftone && typeof htStopAnim === 'function') htStopAnim(true);
     if (m !== 'video' && anim.running) stopAnim(true);
     if (!isSVGFill && svgFillAnim.running) stopSVGFillAnim();
   }
@@ -6030,8 +6059,9 @@ function htSetShape(sh, noRender) {
 function _htSetSlider(id, v) {
   const el = $(id); el.value = v; el.oninput();
 }
-function getHalftoneSettings() {
-  const n = id => parseFloat($(id).value);
+function getHalftoneSettings(t) {
+  const ov = t == null ? null : htAnimValues(t);
+  const n = id => ov && id in ov ? ov[id] : parseFloat($(id).value);
   return {
     fit: $('ht-fit').value, res: n('ht-res'), blur: n('ht-blur'),
     gamma: n('ht-gamma'), contrast: n('ht-contrast'),
@@ -6331,8 +6361,11 @@ function renderHalftone() {
   if (outputMode !== 'halftone') return;
   ['ht-btn-png', 'ht-btn-svg', 'ht-btn-copy'].forEach(id => $(id).disabled = !srcCanvas);
   $('ht-video-export').style.display = media.frames.length > 1 ? 'flex' : 'none';
+  if (typeof htAnimButtons === 'function') htAnimButtons();
   if (!srcCanvas) { $('tb-info').textContent = 'Drop an image or video to start'; return; }
-  const s = getHalftoneSettings();
+  // While previewing, the animation loop owns the canvas (it calls in with forceT set)
+  if (ht.anim?.running && ht.forceT == null) return;
+  const s = getHalftoneSettings(ht.forceT);
   const { dots, W, H } = buildHalftoneDots(s);
   Object.assign(ht, { dots, W, H, s, n: dots.length / 3 });
   const out = $('output');
@@ -6440,11 +6473,16 @@ async function exportHalftoneVideo() {
   const done = new Promise(r => rec.onstop = r);
   _htExportUI(true);
   rec.start(100);
+  htStopAnim(true);
+  let tAnim = 0;
   for (let i = 0; i < n && !ht.stop; i++) {
     const t0 = performance.now();
+    ht.forceT = ht.tracks.some(t => t.on) ? tAnim : null;
     showFrame(i);
+    ht.forceT = null;
     _htProgress(i, n, 'Recording');
     const dur = media.durations[i] > 0 ? media.durations[i] : 1000 / fps;
+    tAnim += dur / 1000;
     await new Promise(r => setTimeout(r, Math.max(0, dur - (performance.now() - t0))));
   }
   rec.stop();
@@ -6459,8 +6497,14 @@ async function exportHalftonePNGSeq() {
   stopMediaPlay();
   const n = media.frameCount, out = $('output'), entries = [];
   _htExportUI(true);
+  htStopAnim(true);
+  const fps = parseInt($('media-fps').value) || 24;
+  let tAnim = 0;
   for (let i = 0; i < n && !ht.stop; i++) {
+    ht.forceT = ht.tracks.some(t => t.on) ? tAnim : null;
     showFrame(i);
+    ht.forceT = null;
+    tAnim += (media.durations[i] > 0 ? media.durations[i] : 1000 / fps) / 1000;
     const blob = await new Promise(r => out.toBlob(r, 'image/png'));
     entries.push({ name: `frame_${String(i).padStart(4, '0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) });
     _htProgress(i, n, 'Capturing');
@@ -6473,6 +6517,204 @@ async function exportHalftonePNGSeq() {
   _htExportUI(false);
   renderHalftone();
 }
+
+// ── Animation: per-property tracks (From → To over a Period, shaped by a curve) ──
+// A track overrides its slider while previewing / exporting; the static view keeps
+// the slider value. Curves reuse the Stippling cubic-bezier editor under key 'ht:<id>'.
+const HT_ANIM_PROPS = {
+  spacing:  { label: 'Spacing',    id: 'ht-spacing',  unit: 'px', step: 1,    def: v => [v, Math.round(v * 1.6)] },
+  dot:      { label: 'Dot size',   id: 'ht-dot',      unit: '%',  step: 1,    def: () => [40, 130] },
+  rot:      { label: 'Rotation',   id: 'ht-rot',      unit: '°',  step: 1,    def: v => [v, v + 90] },
+  corner:   { label: 'Corners',    id: 'ht-corner',   unit: '%',  step: 1,    def: () => [0, 100] },
+  neck:     { label: 'Neck',       id: 'ht-neck',     unit: '%',  step: 1,    def: () => [0, 60] },
+  bright:   { label: 'Brightness', id: 'ht-bright',   unit: '',   step: 0.05, def: () => [-0.3, 0.3] },
+  gamma:    { label: 'Gamma',      id: 'ht-gamma',    unit: '',   step: 0.05, def: () => [0.6, 1.6] },
+  contrast: { label: 'Contrast',   id: 'ht-contrast', unit: '',   step: 0.05, def: () => [-0.5, 0.5] },
+  noise:    { label: 'Noise',      id: 'ht-noise',    unit: '%',  step: 1,    def: () => [0, 60] },
+};
+ht.tracks = [];
+ht.anim = { running: false, paused: false, t0: 0, pausedAt: 0, rafId: null, recording: false, recorder: null, recEnd: 0 };
+ht.forceT = null;                          // set by video exports so frames carry the animation
+
+// Value of every animated slider at time t (seconds) → { 'ht-spacing': 31, … }
+function htAnimValues(t) {
+  const o = {};
+  for (const tr of ht.tracks) {
+    if (!tr.on) continue;
+    const p = ((t / Math.max(0.05, tr.period)) % 1 + 1) % 1;
+    const u = tr.mode === 'loop' ? p : (p < 0.5 ? p * 2 : 2 - p * 2);   // ping-pong: there and back
+    o[HT_ANIM_PROPS[tr.prop].id] = tr.from + (tr.to - tr.from) * _stCurve('ht:' + tr.id, u);
+  }
+  return o;
+}
+const _htCurveKey = tr => 'ht:' + tr.id;
+
+function htAddTrack(prop, data) {
+  const P = HT_ANIM_PROPS[prop]; if (!P) return;
+  const cur = parseFloat($(P.id).value);
+  const [from, to] = P.def(cur);
+  const tr = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), prop, on: true, from, to,
+    period: 4, mode: 'pingpong', curve: ST_CURVE_PRESETS['Sine in-out'] }, data || {});
+  ht.tracks.push(tr);
+  _htBuildTrack(tr);
+  htAnimButtons();
+}
+function htRemoveTrack(id) {
+  ht.tracks = ht.tracks.filter(t => t.id !== id);
+  delete stip.curves['ht:' + id]; delete _stCurveEd['ht:' + id];
+  document.querySelector(`.ht-track[data-id="${id}"]`)?.remove();
+  htAnimButtons();
+}
+function htClearTracks() { [...ht.tracks].forEach(t => htRemoveTrack(t.id)); }
+
+function _htBuildTrack(tr) {
+  const P = HT_ANIM_PROPS[tr.prop], key = _htCurveKey(tr);
+  const el = document.createElement('div');
+  el.className = 'ht-track'; el.dataset.id = tr.id;
+  el.innerHTML = `
+    <div class="ht-track-head">
+      <label class="st-check"><input type="checkbox" class="ht-tr-on"${tr.on ? ' checked' : ''}> <b>${P.label}</b></label>
+      <button class="ht-track-x" title="Remove">×</button>
+    </div>
+    <div class="ht-track-row">
+      <span>From</span><input class="st-num ht-tr-from" type="number" step="${P.step}" value="${tr.from}">
+      <span>To</span><input class="st-num ht-tr-to" type="number" step="${P.step}" value="${tr.to}">
+      <span class="ht-unit">${P.unit}</span>
+    </div>
+    <div class="slider-row" title="Time for one full cycle"><span class="slider-lbl">Period</span>
+      <input type="range" class="ht-tr-period" min="0.2" max="20" step="0.1" value="${tr.period}"><span class="slider-val">${tr.period}s</span></div>
+    <div class="toggle-group">
+      <button class="toggle-btn ht-tr-mode" data-val="pingpong" title="From → To → From">↔ Ping-pong</button>
+      <button class="toggle-btn ht-tr-mode" data-val="loop" title="From → To, then jump back">→ Loop</button>
+    </div>
+    <details class="st-curve" data-curve="${key}" data-label="Curve" data-x="time" data-y="From → To"></details>`;
+  $('ht-tracks').appendChild(el);
+  const q = s => el.querySelector(s);
+  const modeUI = () => el.querySelectorAll('.ht-tr-mode').forEach(b => b.classList.toggle('active', b.dataset.val === tr.mode));
+  q('.ht-tr-on').onchange = e => { tr.on = e.target.checked; htAnimButtons(); };
+  q('.ht-tr-from').oninput = e => { const v = parseFloat(e.target.value); if (isFinite(v)) tr.from = v; };
+  q('.ht-tr-to').oninput = e => { const v = parseFloat(e.target.value); if (isFinite(v)) tr.to = v; };
+  q('.ht-tr-period').oninput = e => { tr.period = parseFloat(e.target.value); e.target.nextElementSibling.textContent = tr.period + 's'; };
+  el.querySelectorAll('.ht-tr-mode').forEach(b => b.onclick = () => { tr.mode = b.dataset.val; modeUI(); });
+  q('.ht-track-x').onclick = () => htRemoveTrack(tr.id);
+  modeUI();
+  _stBuildCurveEditor(q('.st-curve'));
+  stSetCurve(key, tr.curve);
+  // keep tr.curve in sync with the editor (it writes stip.curves[key])
+  Object.defineProperty(tr, 'curve', { get: () => stip.curves[key], set: c => stSetCurve(key, c), enumerable: true, configurable: true });
+}
+
+function htAnimButtons() {
+  const has = ht.tracks.some(t => t.on) && !!srcCanvas;
+  ['ht-btn-play', 'ht-btn-anim-webm', 'ht-btn-anim-seq'].forEach(id => { const b = $(id); if (b) b.disabled = !has; });
+}
+
+// ── Preview / record ─────────────────────────────────────────────────────────
+function htStartAnim(forRecord) {
+  if (!srcCanvas || !ht.tracks.some(t => t.on)) return;
+  htStopAnim(true);
+  const A = ht.anim;
+  Object.assign(A, { running: true, paused: false, recording: !!forRecord, t0: performance.now() });
+  if (forRecord) {
+    if (!('MediaRecorder' in window)) { alert('MediaRecorder not supported in this browser.'); A.running = false; return; }
+    _htRenderAt(0);                                  // size the canvas before the stream starts
+    const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+      .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+    A.recorder = new MediaRecorder($('output').captureStream(30), { mimeType, videoBitsPerSecond: 12_000_000 });
+    const chunks = [];
+    A.recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    A.recorder.onstop = () => dl(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })), 'halftone-anim.webm');
+    A.recEnd = A.t0 + parseFloat($('ht-recdur').value) * 1000;
+    $('ht-anim-progress').style.display = '';
+    A.recorder.start(100);
+  }
+  $('ht-anim-start').style.display = 'none';
+  $('ht-anim-stop').style.display = '';
+  _htAnimNext();
+}
+// Preview runs on rAF; recording runs on a 30 fps timer so it keeps going
+// even when the page isn't on screen (rAF pauses there).
+function _htAnimNext() {
+  const A = ht.anim;
+  A.rafId = A.recording
+    ? -setTimeout(() => _htAnimFrame(performance.now()), 1000 / 30)
+    : requestAnimationFrame(_htAnimFrame);
+}
+function _htAnimCancel() {
+  const A = ht.anim;
+  if (A.rafId > 0) cancelAnimationFrame(A.rafId); else if (A.rafId < 0) clearTimeout(-A.rafId);
+  A.rafId = null;
+}
+function _htRenderAt(t) {
+  ht.forceT = t; try { renderHalftone(); } finally { ht.forceT = null; }
+}
+function _htAnimFrame(ts) {
+  const A = ht.anim;
+  if (!A.running || A.paused) return;
+  _htRenderAt((ts - A.t0) / 1000);
+  if (A.recording) {
+    const pct = Math.min(100, (ts - A.t0) / (A.recEnd - A.t0) * 100);
+    $('ht-anim-bar').style.width = pct + '%';
+    $('tb-info').textContent = `Recording ${Math.max(0, Math.ceil((A.recEnd - ts) / 1000))}s…`;
+    if (ts >= A.recEnd) { htStopAnim(); return; }
+  }
+  _htAnimNext();
+}
+function htStopAnim(quiet) {
+  const A = ht.anim, was = A.running;
+  A.running = false; A.paused = false;
+  _htAnimCancel();
+  if (A.recorder && A.recorder.state !== 'inactive') { try { A.recorder.stop(); } catch {} }
+  A.recorder = null; A.recording = false;
+  if ($('ht-anim-start')) {
+    $('ht-anim-start').style.display = ''; $('ht-anim-stop').style.display = 'none';
+    $('ht-anim-progress').style.display = 'none'; $('ht-anim-bar').style.width = '0';
+    $('ht-btn-anim-pause').textContent = '⏸ Pause';
+  }
+  if (was && !quiet && outputMode === 'halftone') renderHalftone();
+}
+function htToggleAnimPause() {
+  const A = ht.anim;
+  if (!A.running || A.recording) return;
+  if (!A.paused) {
+    A.paused = true; A.pausedAt = performance.now();
+    _htAnimCancel();
+    $('ht-btn-anim-pause').textContent = '▶ Resume';
+  } else {
+    A.paused = false; A.t0 += performance.now() - A.pausedAt;
+    $('ht-btn-anim-pause').textContent = '⏸ Pause';
+    _htAnimNext();
+  }
+}
+async function htExportAnimPNGSeq() {
+  if (!srcCanvas || !ht.tracks.some(t => t.on) || ht.exporting) return;
+  htStopAnim(true);
+  const fps = 24, n = Math.max(1, Math.round(parseFloat($('ht-recdur').value) * fps));
+  const out = $('output'), entries = [];
+  ht.exporting = true; ht.stop = false;
+  $('ht-anim-progress').style.display = '';
+  for (let i = 0; i < n && !ht.stop; i++) {
+    _htRenderAt(i / fps);
+    const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+    entries.push({ name: `frame_${String(i).padStart(4, '0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) });
+    $('ht-anim-bar').style.width = Math.round((i + 1) / n * 100) + '%';
+    $('tb-info').textContent = `Capturing frame ${i + 1} / ${n}…`;
+  }
+  $('tb-info').textContent = 'Building ZIP…';
+  await new Promise(r => setTimeout(r, 0));
+  dl(URL.createObjectURL(buildZip(entries)), 'halftone-anim-frames.zip');
+  ht.exporting = false;
+  $('ht-anim-progress').style.display = 'none'; $('ht-anim-bar').style.width = '0';
+  renderHalftone();
+}
+
+(function initHalftoneAnim() {
+  const sel = $('ht-add-track');
+  Object.entries(HT_ANIM_PROPS).forEach(([k, P]) => { const o = document.createElement('option'); o.value = k; o.textContent = P.label; sel.appendChild(o); });
+  sel.onchange = () => { if (sel.value) htAddTrack(sel.value); sel.value = ''; };
+  htAnimButtons();
+})();
+
 </script>
 
 <!-- ═══ PRESETS (v2.2) ═══ save / load / update the current tab's settings.
@@ -6524,7 +6766,9 @@ const PRESET_MODES = {
     roots: ['stipple-panel'],
     keys: ['dir', 'structure', 'snap', 'colorMode', 'bandCount', 'wick', 'wickSame', 'intro', 'order', 'motion', 'waveDir', 'anchor'],
     get() {
-      const o = { palette: stip.palette, bandColors: [...stip.bandColors], curves: JSON.parse(JSON.stringify(stip.curves)) };
+      const curves = {};
+      Object.keys(ST_CURVE_DEFAULTS).forEach(k => curves[k] = [...stip.curves[k]]);
+      const o = { palette: stip.palette, bandColors: [...stip.bandColors], curves };
       this.keys.forEach(k => o[k] = stip[k]);
       return o;
     },
@@ -6532,14 +6776,21 @@ const PRESET_MODES = {
       stip.palette = x.palette;
       this.keys.forEach(k => { if (k in x) stSet(k, x[k], true); });
       stip.bandColors = [...x.bandColors]; stBuildBandUI();
-      Object.entries(x.curves || {}).forEach(([k, c]) => stSetCurve(k, c));
+      Object.entries(x.curves || {}).forEach(([k, c]) => { if (k in ST_CURVE_DEFAULTS) stSetCurve(k, c); });
       debouncedStipple();
     },
   },
   halftone: {
     roots: ['halftone-panel'],
-    get: () => ({ grid: ht.grid, shape: ht.shape }),
-    set: x => { htSetGrid(x.grid || 'square'); htSetShape(x.shape || 'circle'); },
+    get: () => ({ grid: ht.grid, shape: ht.shape,
+      tracks: ht.tracks.map(t => ({ prop: t.prop, on: t.on, from: t.from, to: t.to, period: t.period, mode: t.mode, curve: [...t.curve] })) }),
+    set: x => {
+      htSetGrid(x.grid || 'square'); htSetShape(x.shape || 'circle');
+      if (!_presetSame(PRESET_MODES.halftone.get().tracks, x.tracks || [])) {
+        htStopAnim(true); htClearTracks();
+        (x.tracks || []).forEach(t => htAddTrack(t.prop, { on: t.on, from: t.from, to: t.to, period: t.period, mode: t.mode, curve: t.curve }));
+      }
+    },
   },
 };
 
