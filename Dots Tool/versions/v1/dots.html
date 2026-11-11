@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dots</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #181818; color: #e0e0e0;
+  height: 100vh; display: flex; overflow: hidden;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 290px; min-width: 290px; background: #202020;
+  border-right: 1px solid #2e2e2e; overflow-y: auto;
+  padding: 14px 12px 40px; display: flex; flex-direction: column; gap: 2px;
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+#upload-area {
+  border: 1.5px dashed #3a3a3a; border-radius: 8px; padding: 14px 12px;
+  text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  color: #666; font-size: 12px; line-height: 1.5; user-select: none; margin-bottom: 10px;
+}
+#upload-area:hover, #upload-area.drag-over { border-color: #666; background: #262626; color: #aaa; }
+#upload-area .up-icon { font-size: 18px; margin-bottom: 2px; opacity: .5; display: block; }
+
+/* draggable sections */
+.ds { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-top: 1px solid #252525; transition: opacity .15s; }
+.ds.dragging { opacity: .35; }
+.ds.drag-over-top { border-top: 2px solid #666; }
+.ds.drag-over-bottom { border-bottom: 2px solid #666; }
+.section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: #555; display: flex; align-items: center; gap: 5px; cursor: grab; user-select: none;
+}
+.section-label:active { cursor: grabbing; }
+.drag-handle { font-size: 11px; color: #383838; letter-spacing: -1px; }
+.ds:hover .drag-handle { color: #555; }
+.section-label-text { flex: 1; }
+/* folding: click a section header to fold / unfold it */
+.fold-caret { width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center; color: #777; transition: transform .15s; flex-shrink: 0; }
+.fold-caret::before { content: ''; width: 5px; height: 5px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-1.5px) rotate(45deg); }
+.preset-head { gap: 5px; }
+.preset-head .preset-title { flex: 1; }
+.section-label:hover .fold-caret, .preset-head:hover .fold-caret { color: #aaa; }
+.section-label:hover .section-label-text { color: #888; }
+.ds.folded .fold-caret, #preset-box.folded .fold-caret { transform: rotate(-90deg); }
+.ds.folded > :not(.section-label) { display: none !important; }
+.ds.folded { padding-bottom: 6px; }
+#preset-box.folded > :not(.preset-head) { display: none !important; }
+.preset-head { cursor: pointer; user-select: none; }
+#pr-head-name { color: #999; font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 4px; display: none; }
+#preset-box.folded #pr-head-name { display: inline; }
+.sub { font-size: 10px; color: #555; letter-spacing: .04em; margin-top: 6px; }
+.hint { font-size: 10px; color: #4a4a4a; line-height: 1.4; }
+
+/* toggles */
+.toggle-group { display: flex; border: 1px solid #333; border-radius: 5px; overflow: hidden; background: #181818; }
+.toggle-btn {
+  flex: 1; padding: 5px 4px; background: none; border: none; color: #666;
+  font-size: 11px; cursor: pointer; transition: background .12s, color .12s; font-family: inherit; white-space: nowrap;
+}
+.toggle-btn.active { background: #383838; color: #ddd; }
+.toggle-btn:not(.active):hover { background: #282828; color: #aaa; }
+
+/* inputs */
+select, .num {
+  flex: 1; min-width: 0; background: #1e1e1e; border: 1px solid #333; border-radius: 4px;
+  color: #ccc; font-size: 11px; padding: 3px 6px; font-family: inherit; font-variant-numeric: tabular-nums;
+}
+select option { background: #202020; }
+input[type=range] { flex: 1; accent-color: #777; cursor: pointer; min-width: 0; }
+input[type=color] {
+  width: 30px; height: 22px; border: 1px solid #333; border-radius: 4px;
+  background: none; cursor: pointer; padding: 0; flex-shrink: 0;
+}
+.row { display: flex; align-items: center; gap: 6px; }
+.lbl { min-width: 84px; color: #666; font-size: 11px; }
+.slider-val { min-width: 38px; text-align: right; color: #888; font-size: 11px; font-variant-numeric: tabular-nums; cursor: text; border-radius: 3px; }
+.slider-val:hover { color: #ccc; background: #262626; }
+.slider-val[contenteditable="true"] { color: #fff; background: #141414; outline: 1px solid #555; }
+.check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #aaa; cursor: pointer; }
+.check input { accent-color: #777; cursor: pointer; margin: 0; }
+.mini-btn {
+  padding: 3px 8px; background: #272727; border: 1px solid #353535; border-radius: 4px;
+  color: #999; font-size: 11px; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.mini-btn:hover { background: #303030; color: #ddd; border-color: #555; }
+.mini-btn.on { background: #3a3424; color: #f0c040; border-color: #6a5a30; }
+
+/* buttons */
+.btns { display: flex; gap: 6px; }
+.btn {
+  flex: 1; padding: 7px 4px; background: #272727; border: 1px solid #353535;
+  border-radius: 5px; color: #aaa; font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: background .12s, color .12s; font-family: inherit;
+}
+.btn:hover:not(:disabled) { background: #333; color: #fff; }
+.btn:disabled { opacity: .28; cursor: not-allowed; }
+.btn.rec { color: #c08080; border-color: #453030; }
+.btn.rec:hover:not(:disabled) { background: #332020; color: #ffaaaa; }
+.btn.stop { background: #2e1e1e; border-color: #5a3030; color: #dd8080; }
+.progress { height: 3px; background: #2a1a1a; border-radius: 2px; overflow: hidden; display: none; }
+.progress > div { height: 100%; width: 0; background: #aa4444; }
+
+/* curve editors */
+.curve { border: 1px solid #2a2a2a; border-radius: 5px; background: #181818; }
+.curve > summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  padding: 4px 8px; font-size: 11px; color: #777; cursor: pointer; list-style: none; user-select: none;
+}
+.curve > summary::-webkit-details-marker { display: none; }
+.curve > summary::before { content: '▸'; color: #555; margin-right: 2px; }
+.curve[open] > summary::before { content: '▾'; }
+.curve > summary > span:first-child { flex: 1; }
+.curve-name { color: #bbb; }
+.curve-canvas { display: block; width: 100%; height: 130px; cursor: crosshair; touch-action: none; }
+.curve-row { display: flex; gap: 4px; padding: 4px 6px 6px; }
+.curve-row select { flex: 0 0 46%; }
+
+/* preview */
+#preview-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+#toolbar {
+  padding: 0 12px; border-bottom: 1px solid #252525; display: flex; align-items: center;
+  gap: 8px; font-size: 11px; color: #555; background: #1a1a1a; flex-shrink: 0; height: 30px;
+}
+#tb-info { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zoom-btn {
+  background: none; border: 1px solid #2a2a2a; border-radius: 3px; color: #666;
+  cursor: pointer; font-family: inherit; height: 20px; display: flex; align-items: center;
+  padding: 0 7px; font-size: 12px; line-height: 1;
+}
+.zoom-btn:hover { background: #242424; color: #ccc; border-color: #444; }
+#zoom-val { font-size: 11px; color: #666; min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+#version-switcher { position: relative; display: flex; align-items: center; }
+#vs-menu {
+  display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
+  background: #1a1a1a; border: 1px solid #333; border-radius: 5px; min-width: 140px; padding: 4px 0;
+  box-shadow: 0 6px 16px rgba(0,0,0,.55); font-size: 11px; z-index: 9999;
+}
+#vs-menu a { display: block; padding: 5px 12px; color: #aaa; text-decoration: none; }
+#vs-menu a:hover { background: #2a2a2a; }
+#vs-menu a.vs-current { color: #fff; }
+#canvas-wrap {
+  flex: 1; overflow: auto; padding: 20px; background-color: #141414; display: flex; min-width: 0; min-height: 0;
+  background-image:
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%), linear-gradient(-45deg, #1c1c1c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1c1c1c 75%), linear-gradient(-45deg, transparent 75%, #1c1c1c 75%);
+  background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+canvas#output { display: block; margin: auto; box-shadow: 0 4px 24px rgba(0,0,0,.6); flex-shrink: 0; }
+canvas#output.orbit { cursor: grab; }
+canvas#output.picking { cursor: crosshair; }
+#frame-bar {
+  display: none; flex-shrink: 0; padding: 5px 12px; background: #1a1a1a; border-top: 1px solid #252525;
+  align-items: center; gap: 8px;
+}
+#fb-play {
+  background: none; border: 1px solid #333; border-radius: 3px; color: #888; cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 2px 9px; font-family: inherit;
+}
+#fb-play:hover { background: #272727; color: #ccc; border-color: #555; }
+#frame-scrubber { flex: 1; }
+#frame-counter { font-size: 10px; color: #555; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* colour picker */
+#cp-popup {
+  display: none; position: fixed; z-index: 99999; background: #1e1e1e; border: 1px solid #3a3a3a;
+  border-radius: 8px; padding: 10px 10px 8px; box-shadow: 0 6px 24px rgba(0,0,0,.7); width: 192px; user-select: none;
+}
+#cp-sv-wrap { position: relative; width: 172px; height: 120px; border-radius: 4px; overflow: hidden; cursor: crosshair; margin-bottom: 8px; }
+#cp-sv-canvas { display: block; width: 172px; height: 120px; }
+#cp-sv-cursor {
+  position: absolute; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 0 1px rgba(0,0,0,.5);
+}
+.cp-track { position: relative; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 6px;
+  background: linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+.cp-track input[type=range] {
+  position: absolute; inset: 0; width: 100%; height: 100%; -webkit-appearance: none; appearance: none;
+  background: transparent; margin: 0; cursor: pointer;
+}
+.cp-track input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff;
+  border: 1.5px solid rgba(0,0,0,.35); box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.cp-bottom { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+#cp-hex {
+  flex: 1; min-width: 0; background: #141414; border: 1px solid #333; color: #ccc; font-size: 11px; padding: 3px 5px;
+  border-radius: 3px; font-family: 'Courier New', monospace; outline: none;
+}
+#cp-eyedrop {
+  background: #141414; border: 1px solid #333; color: #aaa; border-radius: 3px;
+  width: 24px; height: 22px; cursor: pointer; font-size: 12px;
+}
+#cp-eyedrop:hover { color: #fff; border-color: #555; }
+
+/* presets */
+#preset-box { display: flex; flex-direction: column; gap: 6px; padding: 8px; margin-bottom: 8px;
+  background: #1b1b1b; border: 1px solid #2c2c2c; border-radius: 6px; }
+.preset-head { display: flex; align-items: center; justify-content: space-between; }
+.preset-title { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #777; }
+#pr-state { font-size: 10px; color: #c9a34a; }
+.preset-btns, #pr-menu { display: flex; gap: 4px; flex-wrap: wrap; }
+.preset-btns .mini-btn { flex: 1; }
+#pr-more { flex: 0 0 auto; }
+#pr-menu { display: none; }
+#pr-menu.open { display: flex; }
+#pr-menu .mini-btn { flex: 1 1 45%; }
+#pr-name-row { display: none; }
+.mini-btn:disabled { opacity: .35; cursor: default; }
+.mini-btn:disabled:hover { background: #272727; color: #999; border-color: #353535; }
+input.num[type=text] { padding: 4px 6px; outline: none; }
+
+/* stage + 3D view controls */
+#stage { flex: 1; position: relative; display: flex; min-height: 0; }
+#canvas-wrap { cursor: grab; }
+#canvas-wrap.panning { cursor: grabbing; }
+#view-ctl {
+  position: absolute; top: 10px; right: 18px; display: none; flex-direction: column; align-items: center; gap: 6px;
+  user-select: none;
+}
+#view-ctl.show { display: flex; }
+#gizmo { width: 104px; height: 104px; cursor: grab; border-radius: 50%; }
+#gizmo:hover { background: rgba(255,255,255,0.04); }
+#gizmo.dragging { cursor: grabbing; }
+.view-btn {
+  background: rgba(30,30,30,.85); border: 1px solid #3a3a3a; border-radius: 4px; color: #aaa;
+  font-size: 10px; padding: 3px 8px; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.view-btn:hover { color: #fff; border-color: #555; }
+.view-proj { background: rgba(24,24,24,.85); }
+.view-proj .toggle-btn { font-size: 10px; padding: 3px 7px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="upload-area" onclick="$('file-input').click()">
+    <span class="up-icon">⬆</span>Drop image, video or GIF here
+  </div>
+  <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="loadFile(this.files[0]); this.value=''">
+
+  <!-- PRESETS (not part of the saved settings) -->
+  <div id="preset-box">
+    <div class="preset-head">
+      <span class="preset-title">Preset<span id="pr-head-name"></span></span>
+      <span id="pr-state" title="Settings differ from the loaded preset. Exports use the current settings; the preset only changes when you click Update"></span>
+    </div>
+    <div class="row">
+      <select id="pr-select" title="Load a preset"></select>
+    </div>
+    <div class="preset-btns">
+      <button class="mini-btn" onclick="presetSaveNew()" title="Save the current settings as a new preset">＋ Save new</button>
+      <button class="mini-btn" id="pr-update" onclick="presetUpdate()" title="Overwrite the loaded preset with the current settings">Update</button>
+      <button class="mini-btn" id="pr-revert" onclick="presetRevert()" title="Discard changes and reload the preset">Revert</button>
+      <button class="mini-btn" id="pr-more" onclick="$('pr-menu').classList.toggle('open')" title="More">⋯</button>
+    </div>
+    <div id="pr-menu">
+      <button class="mini-btn" onclick="presetRename()">Rename</button>
+      <button class="mini-btn" id="pr-delete" onclick="presetDelete()">Delete</button>
+      <button class="mini-btn" onclick="presetExportFile()" title="Download the current settings as a .json preset file">Export file</button>
+      <button class="mini-btn" onclick="$('pr-file').click()" title="Load a .json preset file">Import file</button>
+    </div>
+    <div class="row" id="pr-name-row">
+      <input type="text" id="pr-name" class="num" placeholder="Preset name" spellcheck="false">
+      <button class="mini-btn" id="pr-name-ok">Save</button>
+      <button class="mini-btn" onclick="$('pr-name-row').style.display='none'">✕</button>
+    </div>
+    <input type="file" id="pr-file" accept=".json,application/json" style="display:none" onchange="presetImportFile(this.files[0]); this.value=''">
+  </div>
+
+  <div id="sections">
+    <!-- IMAGE -->
+    <div class="ds" data-key="image">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">Image</span></div>
+      <div class="row"><span class="lbl" title="Resolution the image is sampled at (long side)">Detail</span>
+        <input type="range" id="detail" min="64" max="1600" step="1" value="800" data-u="px"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Brightness</span>
+        <input type="range" id="bri" min="0" max="200" value="100" data-u="%"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Contrast</span>
+        <input type="range" id="con" min="0" max="300" value="110" data-u="%"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Blur</span>
+        <input type="range" id="blur" min="0" max="20" step="0.5" value="0" data-u="px"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Noise</span>
+        <input type="range" id="noise" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Black pt</span>
+        <input type="range" id="black" min="0" max="254" value="10" data-u=""><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">White pt</span>
+        <input type="range" id="white" min="1" max="255" value="245" data-u=""><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl" title="Tones lighter than this get no dots">Threshold</span>
+        <input type="range" id="thr" min="0" max="95" value="6" data-u="%"><span class="slider-val"></span></div>
+      <label class="check"><input type="checkbox" id="invert"> Invert</label>
+    </div>
+
+    <!-- DOTS -->
+    <div class="ds" data-key="dots">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">Dots</span></div>
+      <div class="row"><span class="lbl" title="Long side of the output canvas">Output</span>
+        <input type="range" id="outsize" min="300" max="3000" step="10" value="1080" data-u="px"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Dot size</span>
+        <input type="range" id="size" min="0.3" max="16" step="0.1" value="1.6" data-u="px"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl">Size variation</span>
+        <input type="range" id="sizevar" min="0" max="100" value="20" data-u="%"><span class="slider-val"></span></div>
+      <div class="sub">Distance between dots</div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="spacing" data-val="even">Even</button>
+        <button class="toggle-btn" data-tg="spacing" data-val="random">Random</button>
+      </div>
+      <div class="row" data-show="spacing:even"><span class="lbl">Distance</span>
+        <input type="range" id="dist" min="1" max="40" step="0.1" value="3.5" data-u="px"><span class="slider-val"></span></div>
+      <div class="row" data-show="spacing:random"><span class="lbl">Min distance</span>
+        <input type="range" id="dmin" min="1" max="40" step="0.1" value="2.5" data-u="px"><span class="slider-val"></span></div>
+      <div class="row" data-show="spacing:random"><span class="lbl">Max distance</span>
+        <input type="range" id="dmax" min="1" max="80" step="0.1" value="6" data-u="px"><span class="slider-val"></span></div>
+      <div class="row" data-show="spacing:random"><span class="lbl" title="Relaxes the random layout: pushes dots apart so clumps and holes even out while it stays organic">Uniformity</span>
+        <input type="range" id="uni" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row"><span class="lbl" title="Random offset of each dot from its place">Divergence</span>
+        <input type="range" id="div" min="0" max="100" value="35" data-u="%"><span class="slider-val"></span></div>
+      <div class="sub">Image tone shown by</div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="tone" data-val="density" title="Darker = more dots">Density</button>
+        <button class="toggle-btn" data-tg="tone" data-val="size" title="Darker = bigger dots">Size</button>
+        <button class="toggle-btn" data-tg="tone" data-val="both">Both</button>
+      </div>
+      <div class="row"><span class="lbl">Seed</span>
+        <input type="number" id="seed" class="num" value="1" min="0" max="999999">
+        <button class="mini-btn" onclick="randomSeed()" title="Random seed">🎲</button></div>
+      <div class="hint" id="dot-count"></div>
+    </div>
+
+    <!-- COLOUR -->
+    <div class="ds" data-key="colour">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">Colour</span></div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="colMode" data-val="mono">Mono</button>
+        <button class="toggle-btn" data-tg="colMode" data-val="image">Image</button>
+        <button class="toggle-btn" data-tg="colMode" data-val="depth" title="Near → far gradient">Depth</button>
+      </div>
+      <div class="row" data-show="colMode:mono"><span class="lbl">Dot colour</span><input type="color" id="mono" value="#f2efe8"></div>
+      <div class="row" data-show="colMode:depth"><span class="lbl">Near / far</span>
+        <input type="color" id="near" value="#ffe6a8"><input type="color" id="far" value="#3a5a8c"></div>
+      <div class="row"><span class="lbl">Dot opacity</span>
+        <input type="range" id="opacity" min="5" max="100" value="100" data-u="%"><span class="slider-val"></span></div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="blend" data-val="normal">Normal</button>
+        <button class="toggle-btn" data-tg="blend" data-val="glow" title="Additive: overlapping dots add up to light">Glow</button>
+      </div>
+      <div class="row"><span class="lbl">Background</span><input type="color" id="bg" value="#0e0e0e">
+        <input type="range" id="bgopa" min="0" max="100" value="100" data-u="%"><span class="slider-val"></span></div>
+    </div>
+
+    <!-- 3D -->
+    <div class="ds" data-key="3d">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">3D &amp; lens</span></div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="d3" data-val="off">2D</button>
+        <button class="toggle-btn" data-tg="d3" data-val="on">3D</button>
+      </div>
+      <div class="sub" data-show="d3:on">Distance from camera comes from</div>
+      <div class="toggle-group" data-show="d3:on">
+        <button class="toggle-btn" data-tg="depthSrc" data-val="bright" title="Dark = near (Invert depth flips it)">Brightness</button>
+        <button class="toggle-btn" data-tg="depthSrc" data-val="random">Random</button>
+        <button class="toggle-btn" data-tg="depthSrc" data-val="map" title="Upload a greyscale depth map: white = near">Depth map</button>
+      </div>
+      <div class="row" data-show="d3:on;depthSrc:map">
+        <button class="mini-btn" onclick="$('depth-input').click()">Upload depth map…</button>
+        <span class="hint" id="depth-name">none · using brightness</span></div>
+      <input type="file" id="depth-input" accept="image/*" style="display:none" onchange="loadDepthMap(this.files[0]); this.value=''">
+      <div class="row" data-show="d3:on;depthSrc:bright,map"><span class="lbl" title="Blend the depth toward random: 0 = image only, 100 = fully random">Random mix</span>
+        <input type="range" id="dmix" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="Pull random depths toward the middle">Clustering</span>
+        <input type="range" id="dclus" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on;depthSrc:bright,map"><span class="lbl" title="Smooths the depth taken from the image">Depth smooth</span>
+        <input type="range" id="dsmooth" min="0" max="6" step="0.5" value="2" data-u=""><span class="slider-val"></span></div>
+      <label class="check" data-show="d3:on;depthSrc:bright,map"><input type="checkbox" id="dinv"> Invert depth</label>
+      <div class="sub" data-show="d3:on">Near / far</div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="How far apart the nearest and farthest dots are">Depth amount</span>
+        <input type="range" id="damt" min="0" max="300" value="80" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="Far dots fade out">Far fade</span>
+        <input type="range" id="fog" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="sub" data-show="d3:on">View · drag the canvas or the axis ball to orbit</div>
+      <div class="toggle-group" data-show="d3:on">
+        <button class="toggle-btn" data-tg="proj" data-val="ortho" title="No perspective: the front view looks exactly like 2D; depth shows when you rotate">Orthographic</button>
+        <button class="toggle-btn" data-tg="proj" data-val="persp" title="Near dots bigger, far dots smaller">Perspective</button>
+      </div>
+      <div class="row" data-show="d3:on;proj:persp"><span class="lbl" title="Field of view. Higher = stronger perspective (near/far size difference); the framing stays the same">Perspective</span>
+        <input type="range" id="fov" min="5" max="120" value="45" data-u="°"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl">Turn</span>
+        <input type="range" id="yaw" min="-180" max="180" step="0.5" value="0" data-u="°"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl">Tilt</span>
+        <input type="range" id="pitch" min="-90" max="90" step="0.5" value="0" data-u="°"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><button class="mini-btn" onclick="resetView()" title="Front view, as in 2D">⟲ Reset view</button></div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="Camera sways left/right while animating">Auto orbit</span>
+        <input type="range" id="orbamt" min="0" max="60" step="0.5" value="0" data-u="°"><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl">Orbit period</span>
+        <input type="range" id="orbper" min="1" max="30" step="0.5" value="8" data-u="s"><span class="slider-val"></span></div>
+      <div class="sub" data-show="d3:on">Lens blur</div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="0 = everything sharp">Aperture</span>
+        <input type="range" id="aperture" min="0" max="100" value="0" data-u=""><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on"><span class="lbl" title="Depth that stays sharp: −100 far … 0 middle … 100 near">Focus</span>
+        <input type="range" id="focus" min="-100" max="100" value="0" data-u=""><span class="slider-val"></span></div>
+      <div class="row" data-show="d3:on">
+        <button class="mini-btn" id="pick-btn" onclick="togglePickFocus()" title="Then click a dot on the canvas">⌖ Pick focus on canvas</button></div>
+      <label class="check" data-show="d3:on"><input type="checkbox" id="rack"> Rack focus during intro</label>
+      <div class="row" data-show="d3:on;rack:on"><span class="lbl">Focus from</span>
+        <input type="range" id="focus0" min="-100" max="100" value="100" data-u=""><span class="slider-val"></span></div>
+    </div>
+
+    <!-- ANIMATION -->
+    <div class="ds" data-key="anim">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">Animation</span></div>
+      <div class="sub">Intro: dots gather into the image</div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="intro" data-val="none">None</button>
+        <button class="toggle-btn" data-tg="intro" data-val="gather">Gather</button>
+      </div>
+      <div class="sub" data-show="intro:gather">Dots start</div>
+      <div class="toggle-group" data-show="intro:gather">
+        <button class="toggle-btn" data-tg="scatter" data-val="even" title="Spread evenly over the canvas">Even</button>
+        <button class="toggle-btn" data-tg="scatter" data-val="random">Random</button>
+        <button class="toggle-btn" data-tg="scatter" data-val="centre" title="Burst out of the centre">Centre</button>
+      </div>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Size of the starting cloud, relative to the canvas">Scatter area</span>
+        <input type="range" id="sarea" min="20" max="400" value="120" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Starting cloud depth (3D only)">Scatter depth</span>
+        <input type="range" id="sdepth" min="0" max="400" value="100" data-u="%"><span class="slider-val"></span></div>
+      <div class="sub" data-show="intro:gather">Order</div>
+      <select id="order" data-show="intro:gather">
+        <option value="0">Random</option><option value="1">Left → right</option><option value="2">Right → left</option>
+        <option value="3">Top → bottom</option><option value="4">Bottom → top</option>
+        <option value="5">Centre → out</option><option value="6">Outside → in</option><option value="7">Near → far (3D)</option>
+      </select>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Time between the first and the last dot setting off">Spread</span>
+        <input type="range" id="spread" min="0" max="10" step="0.1" value="2" data-u="s"><span class="slider-val"></span></div>
+      <details class="curve" data-curve="stagger" data-label="Stagger curve" data-x="time" data-y="dots started" data-show="intro:gather"
+        title="Steep = many dots set off quickly, flat = few"></details>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Flight time of each dot">Travel time</span>
+        <input type="range" id="travel" min="0.1" max="10" step="0.1" value="1.6" data-u="s"><span class="slider-val"></span></div>
+      <details class="curve" data-curve="travel" data-label="Travel curve" data-x="time" data-y="distance covered" data-show="intro:gather"></details>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Dots spiral in">Swirl</span>
+        <input type="range" id="swirl" min="-720" max="720" step="5" value="0" data-u="°"><span class="slider-val"></span></div>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Dots arc toward the camera on the way (3D)">Arc</span>
+        <input type="range" id="arc" min="0" max="200" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="intro:gather"><span class="lbl">Start opacity</span>
+        <input type="range" id="sopa" min="0" max="100" value="35" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="intro:gather"><span class="lbl">Start size</span>
+        <input type="range" id="ssize" min="0" max="300" value="100" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="intro:gather"><span class="lbl" title="Share of the dots visible at the start; the rest appear as they fly in">Start density</span>
+        <input type="range" id="sdens" min="0" max="100" value="100" data-u="%"><span class="slider-val"></span></div>
+      <details class="curve" data-curve="fade" data-label="Fade-in curve" data-x="time" data-y="opacity / size / density" data-show="intro:gather"></details>
+      <div class="toggle-group" data-show="intro:gather">
+        <button class="toggle-btn" data-tg="loop" data-val="once" title="Gather once, then keep the idle motion">Once</button>
+        <button class="toggle-btn" data-tg="loop" data-val="pingpong" title="Gather, hold, disperse, repeat">Gather ⇄ disperse</button>
+      </div>
+      <div class="row" data-show="intro:gather;loop:pingpong"><span class="lbl">Hold</span>
+        <input type="range" id="hold" min="0" max="10" step="0.1" value="1.5" data-u="s"><span class="slider-val"></span></div>
+
+      <div class="sub">Motion</div>
+      <div class="toggle-group">
+        <button class="toggle-btn" data-tg="motion" data-val="none">None</button>
+        <button class="toggle-btn" data-tg="motion" data-val="brown">Brownian</button>
+        <button class="toggle-btn" data-tg="motion" data-val="wave">Wave</button>
+        <button class="toggle-btn" data-tg="motion" data-val="both">Both</button>
+      </div>
+      <label class="check" data-show="motion:brown,wave,both" title="Off: dots only start moving once they've arrived. On: the scattered cloud moves the same way before and while gathering, so a gather ⇄ disperse loop has no still moments">
+        <input type="checkbox" id="mpre"> Also move before gathering</label>
+      <div class="row" data-show="motion:brown,both"><span class="lbl">Wander</span>
+        <input type="range" id="bamt" min="0" max="40" step="0.1" value="2" data-u="px"><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:brown,both"><span class="lbl">Wander speed</span>
+        <input type="range" id="bspd" min="0" max="10" step="0.05" value="1" data-u="×"><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:brown,both"><span class="lbl" title="0%: every dot wanders on its own (neighbours bump into each other). 100%: nearby dots drift together like a current, so the spacing stays even">Coherence</span>
+        <input type="range" id="bcoh" min="0" max="100" value="0" data-u="%"><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:brown,both"><span class="lbl" title="Fast jittery shake on top of the wander">Jitter</span>
+        <input type="range" id="bjit" min="0" max="10" step="0.1" value="0" data-u="px"><span class="slider-val"></span></div>
+      <label class="check" data-show="motion:brown,both"><input type="checkbox" id="bz" checked> Wander in depth too (3D)</label>
+      <div class="sub" data-show="motion:wave,both">Wave travels</div>
+      <div class="toggle-group" data-show="motion:wave,both">
+        <button class="toggle-btn" data-tg="waveDir" data-val="lr">→</button>
+        <button class="toggle-btn" data-tg="waveDir" data-val="rl">←</button>
+        <button class="toggle-btn" data-tg="waveDir" data-val="tb">↓</button>
+        <button class="toggle-btn" data-tg="waveDir" data-val="bt">↑</button>
+        <button class="toggle-btn" data-tg="waveDir" data-val="diag">↘</button>
+        <button class="toggle-btn" data-tg="waveDir" data-val="radial" title="Ripples out of the centre">◎</button>
+      </div>
+      <div class="sub" data-show="motion:wave,both">Dots move along</div>
+      <div class="toggle-group" data-show="motion:wave,both">
+        <button class="toggle-btn" data-tg="waveAxis" data-val="x">X</button>
+        <button class="toggle-btn" data-tg="waveAxis" data-val="y">Y</button>
+        <button class="toggle-btn" data-tg="waveAxis" data-val="z" title="Toward the camera (3D)">Z</button>
+        <button class="toggle-btn" data-tg="waveAxis" data-val="along" title="Along the wave's direction">Along</button>
+      </div>
+      <div class="row" data-show="motion:wave,both"><span class="lbl">Amplitude</span>
+        <input type="range" id="wamp" min="0" max="200" step="0.5" value="8" data-u="px"><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:wave,both"><span class="lbl">Waves</span>
+        <input type="range" id="wnum" min="0.1" max="12" step="0.1" value="2" data-u=""><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:wave,both"><span class="lbl" title="Cycles per second">Wave speed</span>
+        <input type="range" id="wspd" min="0" max="4" step="0.05" value="0.5" data-u="Hz"><span class="slider-val"></span></div>
+      <div class="row" data-show="motion:wave,both"><span class="lbl" title="Dots also grow on the wave's crest">Size pulse</span>
+        <input type="range" id="wsize" min="0" max="200" value="0" data-u="%"><span class="slider-val"></span></div>
+      <details class="curve" data-curve="motion" data-label="Wave curve" data-x="time" data-y="offset" data-show="motion:wave,both"></details>
+
+      <div class="row" style="margin-top:6px"><span class="lbl">Rec. secs</span>
+        <input type="range" id="recsecs" min="1" max="60" step="0.5" value="6" data-u="s"><span class="slider-val"></span></div>
+      <div class="btns">
+        <button class="btn" id="btn-play" onclick="startAnim(false)">▶ Preview</button>
+        <button class="btn rec" id="btn-rec" onclick="startAnim(true)">⬤ WebM</button>
+        <button class="btn" id="btn-seq" onclick="exportPNGSeq()">🖼 PNG Seq</button>
+      </div>
+      <div class="btns" id="stop-row" style="display:none">
+        <button class="btn" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
+        <button class="btn stop" onclick="stopAnim()">■ Stop</button>
+      </div>
+      <div class="progress" id="rec-progress"><div id="rec-bar"></div></div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="ds" data-key="export">
+      <div class="section-label" draggable="true"><span class="drag-handle">⠿</span><span class="section-label-text">Export</span></div>
+      <div class="btns">
+        <button class="btn" onclick="exportPNG(1)">PNG</button>
+        <button class="btn" onclick="exportPNG(2)">PNG 2×</button>
+      </div>
+      <div class="hint">PNG exports the current frame. A transparent background (opacity 0) is kept.</div>
+    </div>
+  </div>
+</div>
+
+<div id="preview-area">
+  <div id="toolbar">
+    <span id="tb-info">Drop an image or video to start</span>
+    <button class="zoom-btn" onclick="setZoom(effZoom() / 1.25)">−</button>
+    <span id="zoom-val">Fit</span>
+    <button class="zoom-btn" onclick="setZoom(effZoom() * 1.25)">+</button>
+    <button class="zoom-btn" onclick="setZoom(1)">1:1</button>
+    <button class="zoom-btn" onclick="setZoom(0)">Fit</button>
+    <div id="version-switcher">
+      <button class="zoom-btn" id="vs-toggle">v: <span id="vs-current">…</span> ▾</button>
+      <div id="vs-menu"></div>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="canvas-wrap"><canvas id="output" width="10" height="10"></canvas></div>
+    <!-- 3D view controls (top right) -->
+    <div id="view-ctl">
+      <canvas id="gizmo" title="Drag to orbit · click an axis to look along it"></canvas>
+      <button class="view-btn" onclick="resetView()" title="Back to the front view (as in 2D)">⟲ Reset view</button>
+      <div class="toggle-group view-proj">
+        <button class="toggle-btn" data-tg="proj" data-val="ortho" title="Orthographic">Ortho</button>
+        <button class="toggle-btn" data-tg="proj" data-val="persp" title="Perspective">Persp</button>
+      </div>
+    </div>
+  </div>
+  <div id="frame-bar">
+    <button id="fb-play" onclick="toggleMediaPlay()">▶</button>
+    <input type="range" id="frame-scrubber" min="0" max="0" value="0" oninput="seekMedia(+this.value)">
+    <span id="frame-counter">1 / 1</span>
+  </div>
+</div>
+
+<div id="cp-popup">
+  <div id="cp-sv-wrap"><canvas id="cp-sv-canvas" width="172" height="120"></canvas><div id="cp-sv-cursor"></div></div>
+  <div class="cp-track"><input type="range" id="cp-hue" min="0" max="359" step="1" value="0"></div>
+  <div class="cp-bottom">
+    <button type="button" id="cp-eyedrop" title="Pick a colour from the screen">⌖</button>
+    <input type="text" id="cp-hex" maxlength="7" spellcheck="false" placeholder="#rrggbb">
+  </div>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// Dots v1 — image / video → fine noise dots, animated, optional real 3D + lens blur.
+// Rendering: WebGL2 point sprites. The CPU only builds the dot LAYOUT (positions +
+// per-dot random numbers). Tone, colour, depth, intro flight, motion, camera and
+// lens blur are all computed in the vertex shader from time t, so a frame is a pure
+// function of (settings, source frame, t) → recordings match the preview exactly.
+// ═════════════════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const V = id => parseFloat($(id).value);
+const MAX_DOTS = 1500000;
+
+// Toggle state (buttons with data-tg / data-val; checkboxes mirrored as 'on'/'off')
+const ui = {
+  spacing: 'random', tone: 'density', colMode: 'mono', blend: 'normal',
+  d3: 'off', proj: 'ortho', depthSrc: 'bright', rack: 'off',
+  intro: 'gather', scatter: 'random', loop: 'once',
+  motion: 'brown', waveDir: 'lr', waveAxis: 'y',
+};
+
+// ── Small utils ──────────────────────────────────────────────────────────────
+function rng(seed) {                 // mulberry32 — deterministic per seed
+  let a = (seed >>> 0) || 1;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hexToRgb(h) {
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+}
+function dl(href, name) {
+  const a = document.createElement('a'); a.href = href; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(href), 2000);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Bezier curves (CSS cubic-bezier; x = time →, y = progress ↑)
+//   stagger — time within Spread → share of dots that have set off (used inverted)
+//   travel  — flight time → distance covered (overshoot allowed)
+//   fade    — flight time → opacity / size from the start values to full
+//   motion  — time within half a wave cycle → offset (low → high)
+// ═════════════════════════════════════════════════════════════════════════════
+const CURVE_PRESETS = {
+  'Linear': [0, 0, 1, 1], 'Ease': [0.25, 0.1, 0.25, 1], 'Ease in': [0.42, 0, 1, 1],
+  'Ease out': [0, 0, 0.58, 1], 'Ease in-out': [0.42, 0, 0.58, 1], 'Sine in-out': [0.37, 0, 0.63, 1],
+  'Cubic out': [0.33, 1, 0.68, 1], 'Expo out': [0.16, 1, 0.3, 1], 'Expo in': [0.7, 0, 0.84, 0],
+  'Back out': [0.34, 1.56, 0.64, 1], 'Back in-out': [0.68, -0.6, 0.32, 1.6],
+};
+const CURVE_DEFAULTS = { stagger: 'Ease in-out', travel: 'Expo out', fade: 'Ease out', motion: 'Sine in-out' };
+const CURVE_KEYS = ['stagger', 'travel', 'fade', 'motion'];   // = R, G, B, A of the curve texture
+const CURVE_Y = [-0.6, 1.6];
+const curves = {}, LUT = {}, LUTINV = {};
+const CN = 256;   // samples per curve (x = i / 255)
+
+function bezierAt(c, x) {
+  const [x1, y1, x2, y2] = c;
+  const bx = t => 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
+  let lo = 0, hi = 1, t = x;
+  for (let i = 0; i < 24; i++) {
+    const v = bx(t);
+    if (Math.abs(v - x) < 1e-6) break;
+    if (v < x) lo = t; else hi = t;
+    t = (lo + hi) / 2;
+  }
+  return 3 * (1 - t) * (1 - t) * t * y1 + 3 * (1 - t) * t * t * y2 + t * t * t;
+}
+function setCurve(key, c) {
+  c = [clamp(+c[0], 0, 1), clamp(+c[1], CURVE_Y[0], CURVE_Y[1]), clamp(+c[2], 0, 1), clamp(+c[3], CURVE_Y[0], CURVE_Y[1])];
+  curves[key] = c;
+  const fine = new Float32Array(1025);
+  for (let i = 0; i <= 1024; i++) fine[i] = bezierAt(c, i / 1024);
+  const lut = new Float32Array(CN), inv = new Float32Array(CN);
+  for (let i = 0; i < CN; i++) lut[i] = bezierAt(c, i / (CN - 1));
+  // inverse: first time x at which the curve reaches v (forward pass over a fine table)
+  let k = 0;
+  for (let j = 0; j < CN; j++) {
+    const v = j / (CN - 1);
+    while (k < 1024 && fine[k + 1] < v) k++;
+    if (k >= 1024) { inv[j] = 1; continue; }
+    const a = fine[k], b = fine[k + 1];
+    inv[j] = (k + (b > a ? clamp((v - a) / (b - a), 0, 1) : 0)) / 1024;
+  }
+  inv[0] = 0;
+  LUT[key] = lut; LUTINV[key] = inv;
+  curveEditorRefresh(key);
+  uploadCurves();
+  requestDraw();
+  if (typeof presetDirtyCheck === 'function') presetDirtyCheck();
+}
+const curveVal = (key, p) => {
+  if (p <= 0) return 0; if (p >= 1) return 1;
+  const f = p * (CN - 1), i = f | 0, l = LUT[key];
+  return l[i] + (l[i + 1] - l[i]) * (f - i);
+};
+function curveName(c) {
+  for (const [n, v] of Object.entries(CURVE_PRESETS)) if (v.every((x, i) => Math.abs(x - c[i]) < 0.005)) return n;
+  return 'Custom';
+}
+const curveEd = {};
+function buildCurveEditor(box) {
+  const key = box.dataset.curve;
+  box.innerHTML = `
+    <summary><span>${box.dataset.label}</span><span class="curve-name"></span></summary>
+    <canvas class="curve-canvas"></canvas>
+    <div class="curve-row"><select></select><input class="num" spellcheck="false" title="cubic-bezier(x1, y1, x2, y2)"></div>`;
+  const ed = { canvas: box.querySelector('canvas'), select: box.querySelector('select'),
+    input: box.querySelector('input'), summary: box.querySelector('.curve-name'), drag: -1 };
+  curveEd[key] = ed;
+  [...Object.keys(CURVE_PRESETS), 'Custom'].forEach(n => {
+    const o = document.createElement('option'); o.value = o.textContent = n; ed.select.appendChild(o);
+  });
+  ed.select.onchange = () => { if (CURVE_PRESETS[ed.select.value]) setCurve(key, CURVE_PRESETS[ed.select.value]); };
+  ed.input.onchange = () => {
+    const nums = ed.input.value.match(/-?\d*\.?\d+/g);
+    if (nums && nums.length >= 4) setCurve(key, nums.slice(0, 4).map(Number)); else curveEditorRefresh(key);
+  };
+  const PAD = 10;
+  ed.toPx = (cv, x, y) => [PAD + x * (cv.width - 2 * PAD), PAD + (CURVE_Y[1] - y) / (CURVE_Y[1] - CURVE_Y[0]) * (cv.height - 2 * PAD)];
+  const fromPx = (cv, px, py) => [(px - PAD) / (cv.width - 2 * PAD), CURVE_Y[1] - (py - PAD) / (cv.height - 2 * PAD) * (CURVE_Y[1] - CURVE_Y[0])];
+  const evPos = e => { const r = ed.canvas.getBoundingClientRect(), sc = ed.canvas.width / r.width; return [(e.clientX - r.left) * sc, (e.clientY - r.top) * sc]; };
+  ed.canvas.addEventListener('pointerdown', e => {
+    const [px, py] = evPos(e), c = curves[key];
+    const h1 = ed.toPx(ed.canvas, c[0], c[1]), h2 = ed.toPx(ed.canvas, c[2], c[3]);
+    ed.drag = Math.hypot(px - h1[0], py - h1[1]) <= Math.hypot(px - h2[0], py - h2[1]) ? 0 : 1;
+    ed.canvas.setPointerCapture(e.pointerId);
+    ed.canvas.dispatchEvent(new PointerEvent('pointermove', e));
+  });
+  ed.canvas.addEventListener('pointermove', e => {
+    if (ed.drag < 0) return;
+    const [x, y] = fromPx(ed.canvas, ...evPos(e)), c = [...curves[key]];
+    c[ed.drag * 2] = Math.round(x * 100) / 100; c[ed.drag * 2 + 1] = Math.round(y * 100) / 100;
+    setCurve(key, c);
+  });
+  const end = () => { ed.drag = -1; };
+  ed.canvas.addEventListener('pointerup', end);
+  ed.canvas.addEventListener('pointercancel', end);
+  box.addEventListener('toggle', () => curveEditorRefresh(key));
+}
+function curveEditorRefresh(key) {
+  const ed = curveEd[key], c = curves[key];
+  if (!ed || !c) return;
+  const name = curveName(c);
+  ed.summary.textContent = name; ed.select.value = name;
+  if (document.activeElement !== ed.input) ed.input.value = c.map(v => +v.toFixed(2)).join(', ');
+  const cv = ed.canvas, dpr = window.devicePixelRatio || 1, cssW = cv.clientWidth || 200;
+  if (cv.width !== Math.round(cssW * dpr)) { cv.width = Math.round(cssW * dpr); cv.height = Math.round(130 * dpr); }
+  const g = cv.getContext('2d'), P = (x, y) => ed.toPx(cv, x, y), u = dpr;
+  g.clearRect(0, 0, cv.width, cv.height);
+  const [ax, ay] = P(0, 0), [bx, by] = P(1, 1);
+  g.fillStyle = '#1c1c1c'; g.fillRect(ax, by, bx - ax, ay - by);
+  g.strokeStyle = '#2c2c2c'; g.lineWidth = u; g.strokeRect(ax, by, bx - ax, ay - by);
+  g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+  const box = cv.closest('.curve');
+  g.font = `${10 * u}px -apple-system, system-ui, sans-serif`; g.fillStyle = '#5a5a5a';
+  g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText('↑ ' + (box?.dataset.y || 'progress'), ax + 2 * u, by - 3 * u);
+  g.textAlign = 'right'; g.textBaseline = 'top'; g.fillText((box?.dataset.x || 'time') + ' →', bx - 2 * u, ay + 3 * u);
+  const h1 = P(c[0], c[1]), h2 = P(c[2], c[3]);
+  g.strokeStyle = '#666'; g.beginPath(); g.moveTo(ax, ay); g.lineTo(...h1); g.moveTo(bx, by); g.lineTo(...h2); g.stroke();
+  g.strokeStyle = '#e8e2d4'; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(ax, ay);
+  g.bezierCurveTo(h1[0], h1[1], h2[0], h2[1], bx, by); g.stroke();
+  g.fillStyle = '#f0c040';
+  [h1, h2].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 5 * u, 0, 7); g.fill(); });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WebGL2 setup
+// ═════════════════════════════════════════════════════════════════════════════
+const canvas = $('output');
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, premultipliedAlpha: true, antialias: false, alpha: true });
+
+const VS = `#version 300 es
+precision highp float;
+precision highp sampler2D;
+layout(location=0) in vec2 a_pos;     // target position, output px (y down)
+layout(location=1) in vec4 a_rnd;     // x rank (density), y size jitter, z random depth, w phase/order
+layout(location=2) in vec3 a_start;   // scattered start, normalised (-0.5..0.5)
+
+uniform sampler2D u_src, u_depthMap, u_curves;
+uniform vec2  u_res;                  // output size in px (layout space)
+uniform float u_pxScale, u_maxPt;
+// image
+uniform float u_black, u_white, u_bri, u_con, u_noise, u_thr; uniform int u_invert;
+// dots
+uniform float u_size, u_sizeVar, u_opacity; uniform int u_toneMode;   // 0 density 1 size 2 both
+uniform int u_colMode; uniform vec3 u_mono, u_near, u_far;
+// intro
+uniform int u_intro, u_order;
+uniform float u_ti, u_spread, u_travel, u_swirl, u_arc, u_startOpa, u_startSize, u_startDens;
+uniform int u_motionPre;
+uniform vec3 u_scatter;               // start cloud size (x, y, z) in px
+// motion
+uniform float u_tm; uniform int u_brown, u_wave, u_bz, u_waveAxis, u_waveRadial;
+uniform float u_bAmt, u_bSpd, u_bJit, u_bCoh, u_wAmp, u_wNum, u_wSpd, u_wSize; uniform vec2 u_waveDir;
+// 3D
+uniform int u_3d, u_depthSrc, u_depthInv, u_ortho;
+uniform float u_depthMix, u_depthClus, u_depthLod, u_depthAmt, u_camDist, u_fog, u_aperture, u_focus;
+uniform mat3 u_rot;
+
+out vec4 v_col;
+out float v_edge;
+
+float curve(int ch, float x) {
+  x = clamp(x, 0.0, 1.0);
+  vec4 c = texture(u_curves, vec2((x * 255.0 + 0.5) / 256.0, 0.5));
+  return ch == 0 ? c.r : ch == 1 ? c.g : ch == 2 ? c.b : c.a;
+}
+float h1(float n) { return fract(sin(n * 127.1 + 311.7) * 43758.5453); }
+float lumOf(vec4 tx) {
+  float l = dot(tx.rgb, vec3(0.299, 0.587, 0.114)) * tx.a + (1.0 - tx.a);   // transparent = paper
+  l = clamp((l * 255.0 - u_black) / max(1.0, u_white - u_black), 0.0, 1.0);
+  l = clamp(l * u_bri, 0.0, 1.0);
+  l = clamp((l - 0.5) * u_con + 0.5, 0.0, 1.0);
+  if (u_invert == 1) l = 1.0 - l;
+  return l;
+}
+void hide() { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; v_col = vec4(0.0); v_edge = 1.0; }
+
+void main() {
+  vec2 uv = a_pos / u_res;
+  vec4 tx = textureLod(u_src, uv, 0.0);
+  float lum = clamp(lumOf(tx) + (h1(a_rnd.w * 17.0) - 0.5) * u_noise, 0.0, 1.0);
+  float tone = (1.0 - lum - u_thr) / max(1e-4, 1.0 - u_thr);
+  if (tone <= 0.0) { hide(); return; }
+  if (u_toneMode != 1 && a_rnd.x > tone) { hide(); return; }   // density: darker → more dots survive
+  tone = clamp(tone, 0.0, 1.0);
+
+  // ── depth (0 = far, 1 = near) ──
+  float zr = a_rnd.z;
+  if (u_depthClus > 0.0) { float d = zr * 2.0 - 1.0; zr = 0.5 + 0.5 * sign(d) * pow(abs(d), 1.0 + u_depthClus * 4.0); }
+  float zi;
+  if (u_depthSrc == 2) zi = textureLod(u_depthMap, uv, u_depthLod).r;
+  else zi = 1.0 - lumOf(textureLod(u_src, uv, u_depthLod));
+  if (u_depthInv == 1) zi = 1.0 - zi;
+  float z01 = u_depthSrc == 1 ? zr : mix(zi, zr, u_depthMix);
+  float zw = u_3d == 1 ? (z01 - 0.5) * u_depthAmt : 0.0;
+
+  // ── intro flight: scattered start → target ──
+  vec3 target = vec3(a_pos.x - u_res.x * 0.5, u_res.y * 0.5 - a_pos.y, zw);
+  vec3 pos = target;
+  float introF = 1.0, e = 1.0;
+  if (u_intro == 1) {
+    vec2 c = uv - 0.5;
+    float key = u_order == 0 ? a_rnd.w : u_order == 1 ? uv.x : u_order == 2 ? 1.0 - uv.x :
+                u_order == 3 ? uv.y : u_order == 4 ? 1.0 - uv.y :
+                u_order == 5 ? length(c) / 0.7072 : u_order == 6 ? 1.0 - length(c) / 0.7072 : 1.0 - z01;
+    float delay = curve(0, key) * u_spread;                 // stagger curve, inverted on the CPU
+    float p = clamp((u_ti - delay) / max(u_travel, 1e-3), 0.0, 1.0);
+    e = p >= 1.0 ? 1.0 : p <= 0.0 ? 0.0 : curve(1, p);     // travel curve (may overshoot)
+    vec3 start = a_start * u_scatter;
+    vec3 off = start - target;
+    float ang = radians(u_swirl) * (1.0 - e);
+    float cs = cos(ang), sn = sin(ang);
+    off.xy = vec2(cs * off.x - sn * off.y, sn * off.x + cs * off.y);
+    pos = target + off * (1.0 - e);
+    pos.z += u_arc * sin(3.14159265 * clamp(e, 0.0, 1.0)) * (0.5 + h1(a_rnd.w * 3.0));
+    introF = p >= 1.0 ? 1.0 : curve(2, p);                  // fade-in curve
+    // start density: only a share of the dots shows at the start; the rest appear
+    // along the fade-in curve as they fly in
+    if (h1(a_rnd.w * 9.7 + 0.3) > mix(u_startDens, 1.0, introF)) { hide(); return; }
+  }
+
+  // ── motion: fades in as each dot arrives, or runs all along (u_motionPre) ──
+  float settle = u_motionPre == 1 ? 1.0 : clamp(e, 0.0, 1.0);
+  float sizeMul = 1.0;
+  if (u_brown == 1) {
+    float ph = a_rnd.w * 628.3, s = u_bSpd, f = 0.6 + h1(a_rnd.w * 5.0) * 0.8, T = u_tm * s * f;
+    vec3 b = vec3(
+      sin(T * 1.00 + ph) + 0.5 * sin(T * 2.31 + ph * 1.7) + 0.25 * sin(T * 4.13 + ph * 2.9),
+      sin(T * 1.13 + ph * 1.3) + 0.5 * sin(T * 2.07 + ph * 2.1) + 0.25 * sin(T * 3.97 + ph * 3.3),
+      sin(T * 0.91 + ph * 1.9) + 0.5 * sin(T * 2.53 + ph * 0.7) + 0.25 * sin(T * 4.41 + ph * 1.1)) / 1.75;
+    float J = u_tm * 23.0;
+    vec3 j = vec3(sin(J * 1.7 + ph * 3.1), sin(J * 2.3 + ph * 4.7), sin(J * 1.9 + ph * 5.3));
+    if (u_bCoh > 0.0) {
+      // Coherence: the same wander, but the phase comes from a smooth field over the canvas
+      // (features ~1/3 of the canvas), so neighbours share almost the same offset.
+      vec2 q = uv * vec2(u_res.x / u_res.y, 1.0) * 3.0;
+      float pf = 3.1416 * (sin(q.x * 2.1 + 1.7 * sin(q.y * 1.3)) + sin(q.y * 2.7 + 1.3 * sin(q.x * 1.9 + 0.7)));
+      float Tf = u_tm * s;
+      vec3 bf = vec3(
+        sin(Tf * 1.00 + pf) + 0.5 * sin(Tf * 2.31 + pf * 1.7) + 0.25 * sin(Tf * 4.13 + pf * 2.9),
+        sin(Tf * 1.13 + pf * 1.3 + 1.1) + 0.5 * sin(Tf * 2.07 + pf * 2.1) + 0.25 * sin(Tf * 3.97 + pf * 3.3),
+        sin(Tf * 0.91 + pf * 1.9 + 2.3) + 0.5 * sin(Tf * 2.53 + pf * 0.7) + 0.25 * sin(Tf * 4.41 + pf * 1.1)) / 1.75;
+      vec3 jf = vec3(sin(J * 1.7 + pf * 3.1), sin(J * 2.3 + pf * 4.7), sin(J * 1.9 + pf * 5.3));
+      b = mix(b, bf, u_bCoh); j = mix(j, jf, u_bCoh);
+    }
+    vec3 m = b * u_bAmt + j * u_bJit;
+    if (u_bz == 0 || u_3d == 0) m.z = 0.0;
+    pos += m * settle;
+  }
+  if (u_wave == 1) {
+    vec2 c = uv - 0.5;
+    float d = u_waveRadial == 1 ? length(c) : dot(c, u_waveDir);
+    float u = fract(d * u_wNum - u_tm * u_wSpd);
+    float tri = u < 0.5 ? u * 2.0 : 2.0 - u * 2.0;
+    float s = curve(3, tri) * 2.0 - 1.0;
+    vec3 ax = u_waveAxis == 0 ? vec3(1, 0, 0) : u_waveAxis == 1 ? vec3(0, 1, 0) : u_waveAxis == 2 ? vec3(0, 0, 1)
+            : u_waveRadial == 1 ? vec3(normalize(vec2(c.x, -c.y) + 1e-5), 0.0) : vec3(u_waveDir.x, -u_waveDir.y, 0.0);
+    if (u_waveAxis == 2 && u_3d == 0) ax = vec3(0.0);
+    pos += ax * s * u_wAmp * settle;
+    sizeMul *= 1.0 + u_wSize * (s * 0.5 + 0.5) * settle;
+  }
+
+  // ── camera ──
+  vec3 w = pos;
+  float persp = 1.0;
+  if (u_3d == 1) {
+    w = u_rot * pos;
+    if (u_ortho == 0) {
+      float dz = u_camDist - w.z;
+      if (dz < 1.0) { hide(); return; }                    // behind the camera
+      persp = u_camDist / dz;
+    }
+  }
+  gl_Position = vec4(w.x * persp / (u_res.x * 0.5), w.y * persp / (u_res.y * 0.5), 0.0, 1.0);
+
+  // ── size, lens blur, opacity ──
+  float sz = u_size * (1.0 + u_sizeVar * (a_rnd.y * 2.0 - 1.0)) * sizeMul;
+  if (u_toneMode >= 1) sz *= mix(0.2, 1.0, tone);
+  sz *= persp * mix(u_startSize, 1.0, introF);
+  float alpha = u_opacity * mix(u_startOpa, 1.0, introF);
+  float coc = 0.0;
+  if (u_3d == 1) {
+    coc = u_aperture * abs(w.z - u_focus) / u_camDist * persp;   // circle of confusion, px
+    float far01 = clamp(0.5 - w.z / max(u_depthAmt, 1.0), 0.0, 1.0);
+    alpha *= 1.0 - u_fog * far01;
+  }
+  float px = sqrt(sz * sz + coc * coc) * u_pxScale;
+  alpha *= clamp((sz * sz) / max(sz * sz + coc * coc, 1e-6), 0.03, 1.0);   // same "ink" spread wider
+  if (px < 1.0) { alpha *= px * px; px = 1.0; }                            // sub-pixel dots → dimmer pixel
+  gl_PointSize = min(px + 1.0, u_maxPt);                                    // +1 px for the soft edge
+  v_edge = clamp(max(1.5 / (px + 1.0), coc * u_pxScale / (px + 1.0)), 0.02, 1.0);
+
+  vec3 col = u_colMode == 0 ? u_mono : u_colMode == 1 ? tx.rgb : mix(u_far, u_near, z01);
+  v_col = vec4(col, clamp(alpha, 0.0, 1.0));
+}`;
+
+const FS = `#version 300 es
+precision highp float;
+in vec4 v_col;
+in float v_edge;
+out vec4 o;
+void main() {
+  vec2 c = gl_PointCoord * 2.0 - 1.0;
+  float r = length(c);
+  float a = 1.0 - smoothstep(1.0 - v_edge, 1.0, r);
+  if (a <= 0.0) discard;
+  float al = v_col.a * a;
+  o = vec4(v_col.rgb * al, al);   // premultiplied
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+let prog, U = {}, vao, vbo, texSrc, texDepth, texCurves, MAX_PT = 256;
+function initGL() {
+  if (!gl) { $('tb-info').textContent = 'WebGL2 is not available in this browser'; return false; }
+  prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(prog, i).name; U[name] = gl.getUniformLocation(prog, name); }
+  MAX_PT = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1] || 256;
+
+  vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  const stride = 9 * 4;
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, stride, 8);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, stride, 24);
+
+  const mkTex = (unit, mip) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mip ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+    if (mip) gl.generateMipmap(gl.TEXTURE_2D);
+    return t;
+  };
+  texSrc = mkTex(0, true); texDepth = mkTex(1, true); texCurves = mkTex(2, false);
+  gl.uniform1i(U.u_src, 0); gl.uniform1i(U.u_depthMap, 1); gl.uniform1i(U.u_curves, 2);
+  return true;
+}
+function uploadCurves() {
+  if (!gl || !texCurves || CURVE_KEYS.some(k => !LUT[k])) return;
+  const d = new Float32Array(CN * 4);
+  for (let i = 0; i < CN; i++) {
+    d[i * 4] = LUTINV.stagger[i]; d[i * 4 + 1] = LUT.travel[i]; d[i * 4 + 2] = LUT.fade[i]; d[i * 4 + 3] = LUT.motion[i];
+  }
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texCurves);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, CN, 1, 0, gl.RGBA, gl.FLOAT, d);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Source: still image, GIF frames or a <video>
+// ═════════════════════════════════════════════════════════════════════════════
+const src = { el: null, name: '', w: 0, h: 0 };          // current drawable + natural size
+const media = { kind: null, video: null, url: null, frames: [], durations: [], count: 0, fps: 30, cur: 0, playing: false, gifClock: 0, lastTs: 0 };
+const srcCanvas = document.createElement('canvas');
+const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
+let srcPixels = null;                                    // lazy CPU copy (for focus picking)
+let depthCanvas = null, depthPixels = null;
+
+function loadFile(file) {
+  if (!file) return;
+  stopAnim();
+  stopMediaPlay();
+  if (media.url) URL.revokeObjectURL(media.url);
+  media.frames.forEach(b => b.close?.());
+  Object.assign(media, { kind: null, video: null, url: null, frames: [], durations: [], count: 0, cur: 0, playing: false });
+  $('frame-bar').style.display = 'none';
+  if (file.type === 'image/gif') return loadGif(file);
+  if (file.type.startsWith('video/')) return loadVideo(file);
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => { setSource(img, file.name, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+function setSource(el, name, w, h) {
+  Object.assign(src, { el, name, w, h });
+  uploadSource();
+  rebuildLayout();
+}
+async function loadGif(file) {
+  const frames = [], durations = [];
+  if ('ImageDecoder' in window) {
+    try {
+      const dec = new ImageDecoder({ data: await file.arrayBuffer(), type: 'image/gif' });
+      await dec.tracks.ready;
+      const n = dec.tracks.selectedTrack?.frameCount || 0;
+      for (let i = 0; n ? i < n : true; i++) {
+        let r; try { r = await dec.decode({ frameIndex: i }); } catch { break; }
+        frames.push(await createImageBitmap(r.image));
+        durations.push((r.image.duration || 0) / 1000 || 100);
+        r.image.close();
+        $('tb-info').textContent = `Decoding GIF… ${frames.length}${n ? ' / ' + n : ''}`;
+      }
+      dec.close();
+    } catch (e) { console.warn('GIF decode failed', e); }
+  }
+  if (!frames.length) {   // fallback: first frame only
+    const url = URL.createObjectURL(file), img = new Image();
+    await new Promise(r => { img.onload = r; img.onerror = r; img.src = url; });
+    if (img.naturalWidth) { frames.push(await createImageBitmap(img)); durations.push(100); }
+    URL.revokeObjectURL(url);
+  }
+  if (!frames.length) return;
+  Object.assign(media, { kind: 'gif', frames, durations, count: frames.length,
+    fps: clamp(Math.round(1000 / (durations[0] || 100)), 1, 60), cur: 0 });
+  showFrameBar();
+  setSource(frames[0], file.name, frames[0].width, frames[0].height);
+}
+async function loadVideo(file) {
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.loop = true; v.preload = 'auto';
+  media.url = URL.createObjectURL(file);
+  v.src = media.url;
+  await new Promise(r => { v.onloadeddata = r; v.onerror = r; });
+  if (!v.videoWidth) { $('tb-info').textContent = 'Could not read this video'; return; }
+  Object.assign(media, { kind: 'video', video: v, fps: 30, cur: 0,
+    count: Math.max(1, Math.floor((isFinite(v.duration) ? v.duration : 1) * 30)) });
+  v.addEventListener('seeked', () => { if (!media.playing && !anim.running) { uploadSource(); requestDraw(); } });
+  showFrameBar();
+  setSource(v, file.name, v.videoWidth, v.videoHeight);
+}
+function showFrameBar() {
+  $('frame-bar').style.display = 'flex';
+  $('frame-scrubber').max = media.count - 1; $('frame-scrubber').value = 0;
+  updateFrameCounter();
+}
+function updateFrameCounter() {
+  if (media.kind === 'video') media.cur = Math.min(media.count - 1, Math.floor(media.video.currentTime * media.fps + 1e-3));
+  $('frame-scrubber').value = media.cur;
+  $('frame-counter').textContent = `${media.cur + 1} / ${media.count}`;
+}
+function seekMedia(i) {
+  stopMediaPlay();
+  i = clamp(i | 0, 0, media.count - 1);
+  if (media.kind === 'gif') { media.cur = i; src.el = media.frames[i]; uploadSource(); requestDraw(); updateFrameCounter(); }
+  else if (media.kind === 'video') { media.video.currentTime = (i + 0.5) / media.fps; media.cur = i; $('frame-counter').textContent = `${i + 1} / ${media.count}`; }
+}
+// The frame bar's ▶ plays the source on its own (the dots keep their static / current state)
+function toggleMediaPlay() { media.playing ? stopMediaPlay() : startMediaPlay(); }
+function startMediaPlay() {
+  if (!media.kind) return;
+  media.playing = true; $('fb-play').textContent = '⏸';
+  if (media.kind === 'video') media.video.play().catch(() => {});
+  media.lastTs = performance.now(); media.gifClock = 0;
+  kick();
+}
+function stopMediaPlay() {
+  media.playing = false; $('fb-play').textContent = '▶';
+  if (media.video) media.video.pause();
+}
+// Seek the source to animation time t (deterministic: used for recording and PNG sequences)
+async function seekMediaToTime(t) {
+  if (media.kind === 'gif') {
+    const total = media.durations.reduce((a, b) => a + b, 0);
+    let ms = (t * 1000) % total, i = 0;
+    while (i < media.count - 1 && ms >= media.durations[i]) { ms -= media.durations[i]; i++; }
+    if (i !== media.cur) { media.cur = i; src.el = media.frames[i]; uploadSource(); }
+    updateFrameCounter();
+  } else if (media.kind === 'video') {
+    const v = media.video, d = isFinite(v.duration) ? v.duration : 1;
+    const target = (t % d);
+    if (Math.abs(v.currentTime - target) > 1e-3) {
+      await new Promise(r => { const on = () => { v.removeEventListener('seeked', on); r(); }; v.addEventListener('seeked', on); v.currentTime = target; });
+    }
+    uploadSource(); updateFrameCounter();
+  }
+}
+
+// Draw the current source frame (with blur) at the Detail resolution and upload it
+function uploadSource() {
+  if (!src.el || !gl) return;
+  const detail = V('detail'), s = detail / Math.max(src.w, src.h);
+  const w = Math.max(1, Math.round(src.w * s)), h = Math.max(1, Math.round(src.h * s));
+  if (srcCanvas.width !== w || srcCanvas.height !== h) { srcCanvas.width = w; srcCanvas.height = h; }
+  srcCtx.clearRect(0, 0, w, h);
+  srcCtx.filter = V('blur') > 0 ? `blur(${V('blur')}px)` : 'none';
+  srcCtx.drawImage(src.el, 0, 0, w, h);
+  srcCtx.filter = 'none';
+  srcPixels = null;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texSrc);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);
+  gl.generateMipmap(gl.TEXTURE_2D);
+}
+function loadDepthMap(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    depthCanvas = document.createElement('canvas');
+    const s = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+    depthCanvas.width = Math.round(img.naturalWidth * s); depthCanvas.height = Math.round(img.naturalHeight * s);
+    const g = depthCanvas.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, depthCanvas.width, depthCanvas.height);
+    depthPixels = g.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texDepth);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, depthCanvas);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    $('depth-name').textContent = file.name;
+    URL.revokeObjectURL(url);
+    requestDraw();
+  };
+  img.src = url;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Layout: dot positions + per-dot random numbers (CPU, only on layout changes)
+// ═════════════════════════════════════════════════════════════════════════════
+const layout = { W: 0, H: 0, N: 0, data: null };
+
+function outputSize() {
+  const L = V('outsize');
+  if (!src.w) return [L, L];
+  return src.w >= src.h ? [L, Math.max(1, Math.round(L * src.h / src.w))] : [Math.max(1, Math.round(L * src.w / src.h)), L];
+}
+// Poisson-disc sampling with a per-dot radius in [rmin, rmax] (Bridson, variable radius).
+// Two dots i, j stay at least (r_i + r_j) / 2 apart. Grid cells are rmax wide with
+// linked-list buckets, so every conflicting dot lies in the 3×3 neighbourhood.
+function poisson(W, H, rmin, rmax, R, cap) {
+  const cell = rmax, gw = Math.ceil(W / cell) + 1, gh = Math.ceil(H / cell) + 1;
+  const head = new Int32Array(gw * gh).fill(-1);
+  const xs = new Float32Array(cap), ys = new Float32Array(cap), rs = new Float32Array(cap), next = new Int32Array(cap);
+  const active = new Int32Array(cap);
+  let n = 0, na = 0;
+  const add = (x, y, r) => {
+    const c = ((y / cell) | 0) * gw + ((x / cell) | 0);
+    xs[n] = x; ys[n] = y; rs[n] = r; next[n] = head[c]; head[c] = n; active[na++] = n; n++;
+  };
+  const ok = (x, y, r) => {
+    const cx = (x / cell) | 0, cy = (y / cell) | 0;
+    for (let gy = Math.max(0, cy - 1); gy <= Math.min(gh - 1, cy + 1); gy++)
+      for (let gx = Math.max(0, cx - 1); gx <= Math.min(gw - 1, cx + 1); gx++)
+        for (let j = head[gy * gw + gx]; j >= 0; j = next[j]) {
+          const dx = xs[j] - x, dy = ys[j] - y, m = (r + rs[j]) * 0.5;
+          if (dx * dx + dy * dy < m * m) return false;
+        }
+    return true;
+  };
+  add(R() * W, R() * H, rmin + (rmax - rmin) * R());
+  while (na > 0 && n < cap) {
+    const ai = (R() * na) | 0, a = active[ai];
+    let found = false;
+    for (let k = 0; k < 14; k++) {
+      const r = rmin + (rmax - rmin) * R();
+      const m = (rs[a] + r) * 0.5, d = m * (1 + R()), ang = R() * 6.283185307;
+      const x = xs[a] + Math.cos(ang) * d, y = ys[a] + Math.sin(ang) * d;
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      if (ok(x, y, r)) { add(x, y, r); found = true; if (n >= cap) break; }
+    }
+    if (!found) active[ai] = active[--na];
+  }
+  return { xs, ys, rs, n };
+}
+// Uniformity: up to 20 rounds of short-range repulsion (Jacobi steps). Each pair closer than
+// 1.3 × its Poisson distance ((r_i + r_j)/2) pushes apart in proportion to the overlap. That is just
+// under the hex spacing for Poisson-disc density, so tight pairs open up and holes fill in while the
+// layout stays organic. Deterministic (no randomness). Tested against Lloyd relaxation (Voronoi
+// centroids): repulsion came out more even (nearest-neighbour CV 0.028 vs 0.068) and ~5× faster.
+// Measured at 6px/6px: nearest-neighbour CV 0.080 → 0.028, closest pair 6.0 → 6.6px.
+function relax(xs, ys, rs, n, W, H, rmax, amount) {
+  let iters = Math.round(amount * 20);
+  iters = Math.min(iters, Math.max(4, Math.round(5e6 / n)));    // cap the work for huge layouts (≈1 s)
+  if (!iters || n < 2) return;
+  const K = 0.65, cell = rmax * 2 * K, gw = Math.ceil(W / cell) + 1, gh = Math.ceil(H / cell) + 1;
+  const start = new Int32Array(gw * gh + 1), order = new Int32Array(n), cid = new Int32Array(n);
+  const fx = new Float32Array(n), fy = new Float32Array(n);
+  for (let it = 0; it < iters; it++) {
+    start.fill(0);
+    for (let i = 0; i < n; i++) { const c = ((ys[i] / cell) | 0) * gw + ((xs[i] / cell) | 0); cid[i] = c; start[c + 1]++; }
+    for (let c = 0; c < gw * gh; c++) start[c + 1] += start[c];
+    const fill = start.slice(0, gw * gh);
+    for (let i = 0; i < n; i++) order[fill[cid[i]]++] = i;
+    for (let i = 0; i < n; i++) {
+      const x = xs[i], y = ys[i], ri = rs[i], c = cid[i], cx = c % gw, cy = (c / gw) | 0;
+      let ax = 0, ay = 0;
+      for (let gy = Math.max(0, cy - 1); gy <= Math.min(gh - 1, cy + 1); gy++)
+        for (let gx = Math.max(0, cx - 1); gx <= Math.min(gw - 1, cx + 1); gx++) {
+          const g = gy * gw + gx;
+          for (let k = start[g]; k < start[g + 1]; k++) {
+            const j = order[k]; if (j === i) continue;
+            const dx = x - xs[j], dy = y - ys[j], m = (ri + rs[j]) * K, d2 = dx * dx + dy * dy;
+            if (d2 >= m * m || d2 < 1e-12) continue;
+            const d = Math.sqrt(d2), w = (m - d) / d;               // push ∝ overlap, along dx/d
+            ax += dx * w; ay += dy * w;
+          }
+        }
+      fx[i] = ax; fy[i] = ay;
+    }
+    for (let i = 0; i < n; i++) {
+      const lim = rs[i] * 0.5;                                      // cap each step for stability
+      let dx = fx[i] * 0.25, dy = fy[i] * 0.25;
+      const l = Math.hypot(dx, dy); if (l > lim) { dx *= lim / l; dy *= lim / l; }
+      xs[i] = Math.min(W - 1e-3, Math.max(0, xs[i] + dx));
+      ys[i] = Math.min(H - 1e-3, Math.max(0, ys[i] + dy));
+    }
+  }
+}
+// Thinning order for Density / Both tone. The shader keeps a dot while rank < tone, so light areas
+// show the first `tone` share of dots in this order. Random ranks give a random subset of an even
+// layout, which clumps. Here the order comes from progressive weighted sample elimination
+// (Yuksel 2015): in stages that halve the set, repeatedly remove the most crowded dot (weight =
+// Σ (1 − d / 2r)^8 over neighbours closer than 2r, where 2r is the hex spacing of the stage's target
+// count). Removed dots get the highest remaining ranks, so every prefix of the order is evenly spread.
+function blueRanks(xs, ys, n, W, H, R) {
+  const rank = new Float32Array(n);
+  if (!n) return rank;
+  let live = new Int32Array(n);
+  for (let i = 0; i < n; i++) live[i] = i;
+  for (let a = n - 1; a > 0; a--) { const j = (R() * (a + 1)) | 0, t = live[a]; live[a] = live[j]; live[j] = t; }  // random tie-breaks
+  let m = n;                                                    // live count; ranks m-1 … are assigned
+  const w = new Float64Array(n), heap = new Int32Array(n), hpos = new Int32Array(n);
+  while (m > 1) {
+    const target = Math.max(1, m >> 1);
+    const d2r = Math.sqrt(2 * W * H / (Math.sqrt(3) * target)); // 2·r_max = hex spacing for `target` dots
+    const cell = d2r, gw = Math.ceil(W / cell) + 1, gh = Math.ceil(H / cell) + 1, G = gw * gh;
+    // bucket live dots
+    const start = new Int32Array(G + 1), cid = new Int32Array(m), ord = new Int32Array(m);
+    for (let q = 0; q < m; q++) { const i = live[q]; const g = ((ys[i] / cell) | 0) * gw + ((xs[i] / cell) | 0); cid[q] = g; start[g + 1]++; }
+    for (let g = 0; g < G; g++) start[g + 1] += start[g];
+    const fill = start.slice(0, G);
+    for (let q = 0; q < m; q++) ord[fill[cid[q]]++] = q;
+    // neighbour lists (CSR) and weights
+    const nbStart = new Int32Array(m + 1); let nb = new Int32Array(m * 8), nf = new Float32Array(m * 8), e = 0;
+    for (let q = 0; q < m; q++) {
+      const i = live[q], g = cid[q], cx = g % gw, cy = (g / gw) | 0;
+      let wi = 0;
+      for (let by = Math.max(0, cy - 1); by <= Math.min(gh - 1, cy + 1); by++)
+        for (let bx = Math.max(0, cx - 1); bx <= Math.min(gw - 1, cx + 1); bx++) {
+          const gg = by * gw + bx;
+          for (let k = start[gg]; k < start[gg + 1]; k++) {
+            const p = ord[k]; if (p === q) continue;
+            const j = live[p], dx = xs[j] - xs[i], dy = ys[j] - ys[i], d = Math.sqrt(dx * dx + dy * dy);
+            if (d >= d2r) continue;
+            let f = 1 - d / d2r; f *= f; f *= f; f *= f;   // (1 − d/2r)^8
+            if (e >= nb.length) { const nb2 = new Int32Array(nb.length * 2); nb2.set(nb); nb = nb2; const nf2 = new Float32Array(nf.length * 2); nf2.set(nf); nf = nf2; }
+            nb[e] = p; nf[e] = f; e++; wi += f;
+          }
+        }
+      nbStart[q + 1] = e; w[q] = wi;
+    }
+    // indexed max-heap over local slots
+    for (let q = 0; q < m; q++) { heap[q] = q; hpos[q] = q; }
+    let hn = m;
+    const swap = (a, b) => { const x = heap[a], y = heap[b]; heap[a] = y; heap[b] = x; hpos[y] = a; hpos[x] = b; };
+    const up = k => { while (k > 0) { const p = (k - 1) >> 1; if (w[heap[p]] >= w[heap[k]]) break; swap(p, k); k = p; } };
+    const down = k => { for (;;) { const l = 2 * k + 1, r = l + 1; let b = k;
+      if (l < hn && w[heap[l]] > w[heap[b]]) b = l; if (r < hn && w[heap[r]] > w[heap[b]]) b = r;
+      if (b === k) break; swap(k, b); k = b; } };
+    for (let k = (hn >> 1) - 1; k >= 0; k--) down(k);
+    const dead = new Uint8Array(m);
+    let left = m;
+    while (left > target) {
+      const q = heap[0]; swap(0, --hn); down(0);
+      dead[q] = 1; left--;
+      rank[live[q]] = (left + 0.5) / n;                         // removed now → rank = its slot
+      for (let k = nbStart[q]; k < nbStart[q + 1]; k++) {
+        const p = nb[k]; if (dead[p]) continue;
+        w[p] -= nf[k]; down(hpos[p]);
+      }
+    }
+    const next = new Int32Array(left); let c = 0;
+    for (let q = 0; q < m; q++) if (!dead[q]) next[c++] = live[q];
+    live = next; m = left;
+  }
+  rank[live[0]] = 0.5 / n;
+  return rank;
+}
+function rebuildLayout() {
+  if (!src.el || !gl) return;
+  const [W, H] = outputSize();
+  const R = rng(+$('seed').value || 1);
+  const div = V('div') / 100;
+  let xs, ys, n, note = '';
+  if (ui.spacing === 'even') {
+    let p = V('dist');
+    if ((W / p) * (H / p) > MAX_DOTS) { p = Math.sqrt(W * H / MAX_DOTS); note = ` · distance raised to ${p.toFixed(1)}px (max ${MAX_DOTS / 1e6}M dots)`; }
+    const cols = Math.floor(W / p), rows = Math.floor(H / p);
+    const ox = (W - (cols - 1) * p) / 2, oy = (H - (rows - 1) * p) / 2;
+    n = cols * rows; xs = new Float32Array(n); ys = new Float32Array(n);
+    let i = 0;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++, i++) {
+      xs[i] = ox + c * p + (R() * 2 - 1) * div * p * 0.5;
+      ys[i] = oy + r * p + (R() * 2 - 1) * div * p * 0.5;
+    }
+  } else {
+    let rmin = Math.min(V('dmin'), V('dmax')), rmax = Math.max(V('dmin'), V('dmax'));
+    let cap = Math.ceil(W * H / (rmin * rmin * 0.8)) + 16;
+    if (cap > MAX_DOTS * 1.3) {
+      const k = Math.sqrt(cap / (MAX_DOTS * 1.3)); rmin *= k; rmax *= k;
+      cap = Math.ceil(W * H / (rmin * rmin * 0.8)) + 16;
+      note = ` · distances raised ×${k.toFixed(2)} (max ${MAX_DOTS / 1e6}M dots)`;
+    }
+    const P = poisson(W, H, rmin, Math.max(rmax, rmin + 1e-3), R, Math.min(cap, MAX_DOTS));
+    n = P.n; xs = P.xs; ys = P.ys;
+    relax(xs, ys, P.rs, n, W, H, Math.max(rmax, rmin + 1e-3), V('uni') / 100);
+    for (let i = 0; i < n; i++) { xs[i] += (R() * 2 - 1) * div * rmin * 0.5; ys[i] += (R() * 2 - 1) * div * rmin * 0.5; }
+  }
+  // interleaved: pos(2) rnd(4) start(3)
+  const data = new Float32Array(n * 9);
+  for (let i = 0; i < n; i++) {
+    const o = i * 9;
+    data[o] = xs[i]; data[o + 1] = ys[i];
+    data[o + 2] = R(); data[o + 3] = R(); data[o + 4] = R(); data[o + 5] = R();
+  }
+  const rank = blueRanks(xs, ys, n, W, H, rng((+$('seed').value || 1) + 7919));
+  for (let i = 0; i < n; i++) data[i * 9 + 2] = rank[i];
+  writeScatter(data, n, W, H, R);
+  Object.assign(layout, { W, H, N: n, data });
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  canvas.width = W; canvas.height = H;
+  applyZoom();
+  $('dot-count').textContent = `${n.toLocaleString()} dot positions${note}`;
+  $('tb-info').textContent = `${src.name} · ${src.w}×${src.h} → ${W}×${H} · ${n.toLocaleString()} dots` +
+    (media.kind ? ` · ${media.count} frames` : '');
+  requestDraw();
+}
+// Scattered start positions (normalised; the shader scales them by Scatter area/depth)
+function writeScatter(data, n, W, H, R) {
+  R = R || rng((+$('seed').value || 1) ^ 0x5CA77E2);
+  if (ui.scatter === 'even') {
+    // stratified: one cell of an aspect-matched grid per dot, in shuffled order
+    const gx = Math.max(1, Math.round(Math.sqrt(n * W / H))), gy = Math.max(1, Math.ceil(n / gx));
+    const cells = new Uint32Array(gx * gy);
+    for (let i = 0; i < cells.length; i++) cells[i] = i;
+    for (let i = cells.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0, t = cells[i]; cells[i] = cells[j]; cells[j] = t; }
+    for (let i = 0; i < n; i++) {
+      const c = cells[i], o = i * 9;
+      data[o + 6] = ((c % gx) + R()) / gx - 0.5;
+      data[o + 7] = (((c / gx) | 0) + R()) / gy - 0.5;
+      data[o + 8] = R() - 0.5;
+    }
+  } else if (ui.scatter === 'centre') {
+    for (let i = 0; i < n; i++) {
+      const o = i * 9, a = R() * 6.2832, r = 0.01 * Math.sqrt(R());
+      data[o + 6] = Math.cos(a) * r; data[o + 7] = Math.sin(a) * r; data[o + 8] = (R() - 0.5) * 0.02;
+    }
+  } else {
+    for (let i = 0; i < n; i++) { const o = i * 9; data[o + 6] = R() - 0.5; data[o + 7] = R() - 0.5; data[o + 8] = R() - 0.5; }
+  }
+}
+function rescatter() {
+  if (!layout.data) return;
+  writeScatter(layout.data, layout.N, layout.W, layout.H);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, layout.data, gl.STATIC_DRAW);
+  requestDraw();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Settings → uniforms, timing
+// ═════════════════════════════════════════════════════════════════════════════
+const WAVE_DIRS = { lr: [1, 0], rl: [-1, 0], tb: [0, 1], bt: [0, -1], diag: [0.7071, 0.7071], radial: [1, 0] };
+function introLength() { return V('spread') + V('travel'); }
+// Map clock time → intro time (handles Gather ⇄ disperse looping)
+function introTime(t) {
+  if (ui.intro !== 'gather') return 1e6;
+  if (ui.loop !== 'pingpong') return t;
+  const A = introLength(), Hd = V('hold'), C = 2 * A + 2 * Hd, tc = t % C;
+  if (tc < A) return tc;
+  if (tc < A + Hd) return A;
+  if (tc < 2 * A + Hd) return 2 * A + Hd - tc;
+  return 0;
+}
+// Perspective camera distance: the z = 0 plane always maps 1:1 onto the canvas, so
+// the FOV only changes how strongly near/far differ, not the framing. Orthographic
+// uses a fixed 45° reference so lens blur keeps the same strength.
+function camDist(H) {
+  const fov = ui.proj === 'ortho' ? 45 : V('fov');
+  return (H * 0.5) / Math.tan(fov * Math.PI / 360);
+}
+function rotMat(yawDeg, pitchDeg) {    // column-major mat3 = Ry(yaw) · Rx(pitch)
+  const y = yawDeg * Math.PI / 180, p = pitchDeg * Math.PI / 180;
+  const cy = Math.cos(y), sy = Math.sin(y), cp = Math.cos(p), sp = Math.sin(p);
+  // rows: [cy, sy*sp, sy*cp], [0, cp, -sp], [-sy, cy*sp, cy*cp]
+  return new Float32Array([cy, 0, -sy, sy * sp, cp, cy * sp, sy * cp, -sp, cy * cp]);
+}
+// Everything the shader needs for clock time t (seconds). `still` = fully formed frame.
+function frameParams(t, still) {
+  const H = layout.H || 1, W = layout.W || 1, depthAmt = V('damt') / 100 * Math.min(W, H) * 0.5;
+  const ti = still ? 1e6 : introTime(t);
+  const focusEnd = V('focus') / 100 * depthAmt * 0.5;
+  let focus = focusEnd;
+  if (ui.rack === 'on' && ui.intro === 'gather') {
+    const f0 = V('focus0') / 100 * depthAmt * 0.5;
+    focus = f0 + (focusEnd - f0) * curveVal('travel', clamp(ti / Math.max(introLength(), 1e-3), 0, 1));
+  }
+  const yaw = V('yaw') + V('orbamt') * Math.sin(2 * Math.PI * t / Math.max(V('orbper'), 0.1));
+  return { ti, tm: t, depthAmt, focus, yaw, pitch: V('pitch'), camDist: camDist(H) };
+}
+function setUniforms(F, pxScale) {
+  const u1f = (n, v) => U[n] && gl.uniform1f(U[n], v), u1i = (n, v) => U[n] && gl.uniform1i(U[n], v);
+  gl.uniform2f(U.u_res, layout.W, layout.H);
+  u1f('u_pxScale', pxScale); u1f('u_maxPt', MAX_PT);
+  u1f('u_black', V('black')); u1f('u_white', V('white')); u1f('u_bri', V('bri') / 100); u1f('u_con', V('con') / 100);
+  u1f('u_noise', V('noise') / 100); u1f('u_thr', V('thr') / 100); u1i('u_invert', $('invert').checked ? 1 : 0);
+  u1f('u_size', V('size')); u1f('u_sizeVar', V('sizevar') / 100); u1f('u_opacity', V('opacity') / 100);
+  u1i('u_toneMode', { density: 0, size: 1, both: 2 }[ui.tone]);
+  u1i('u_colMode', { mono: 0, image: 1, depth: 2 }[ui.colMode]);
+  gl.uniform3fv(U.u_mono, hexToRgb($('mono').value)); gl.uniform3fv(U.u_near, hexToRgb($('near').value)); gl.uniform3fv(U.u_far, hexToRgb($('far').value));
+  u1i('u_intro', ui.intro === 'gather' ? 1 : 0); u1i('u_order', +$('order').value);
+  u1f('u_ti', F.ti); u1f('u_spread', V('spread')); u1f('u_travel', V('travel'));
+  u1f('u_swirl', V('swirl')); u1f('u_arc', V('arc') / 100 * F.depthAmt * (ui.d3 === 'on' ? 1 : 0));
+  u1f('u_startOpa', V('sopa') / 100); u1f('u_startSize', V('ssize') / 100); u1f('u_startDens', V('sdens') / 100);
+  u1i('u_motionPre', $('mpre').checked ? 1 : 0);
+  const sa = V('sarea') / 100;
+  gl.uniform3f(U.u_scatter, layout.W * sa, layout.H * sa, ui.d3 === 'on' ? V('sdepth') / 100 * Math.max(F.depthAmt, Math.min(layout.W, layout.H) * 0.25) : 0);
+  u1f('u_tm', F.tm);
+  u1i('u_brown', ui.motion === 'brown' || ui.motion === 'both' ? 1 : 0);
+  u1i('u_wave', ui.motion === 'wave' || ui.motion === 'both' ? 1 : 0);
+  u1i('u_bz', $('bz').checked ? 1 : 0);
+  u1f('u_bAmt', V('bamt')); u1f('u_bSpd', V('bspd')); u1f('u_bJit', V('bjit')); u1f('u_bCoh', V('bcoh') / 100);
+  u1i('u_waveAxis', { x: 0, y: 1, z: 2, along: 3 }[ui.waveAxis]); u1i('u_waveRadial', ui.waveDir === 'radial' ? 1 : 0);
+  gl.uniform2fv(U.u_waveDir, WAVE_DIRS[ui.waveDir]);
+  u1f('u_wAmp', V('wamp')); u1f('u_wNum', V('wnum')); u1f('u_wSpd', V('wspd')); u1f('u_wSize', V('wsize') / 100);
+  u1i('u_3d', ui.d3 === 'on' ? 1 : 0); u1i('u_ortho', ui.proj === 'ortho' ? 1 : 0);
+  u1i('u_depthSrc', ui.depthSrc === 'random' ? 1 : ui.depthSrc === 'map' && depthCanvas ? 2 : 0);
+  u1i('u_depthInv', $('dinv').checked ? 1 : 0);
+  u1f('u_depthMix', V('dmix') / 100); u1f('u_depthClus', V('dclus') / 100); u1f('u_depthLod', V('dsmooth'));
+  u1f('u_depthAmt', F.depthAmt); u1f('u_camDist', F.camDist); u1f('u_fog', V('fog') / 100);
+  u1f('u_aperture', V('aperture') * 0.6); u1f('u_focus', F.focus);
+  gl.uniformMatrix3fv(U.u_rot, false, rotMat(F.yaw, F.pitch));
+}
+function drawFrame(t, still, pxScale = 1) {
+  if (!gl || !layout.N) return;
+  const bg = hexToRgb($('bg').value), ba = V('bgopa') / 100;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(bg[0] * ba, bg[1] * ba, bg[2] * ba, ba);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND);
+  if (ui.blend === 'glow') gl.blendFunc(gl.ONE, gl.ONE); else gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.useProgram(prog); gl.bindVertexArray(vao);
+  const F = frameParams(t, still);
+  setUniforms(F, pxScale);
+  gl.drawArrays(gl.POINTS, 0, layout.N);
+  drawGizmo(F.yaw, F.pitch);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Clock: one rAF loop drives the dot animation and/or source playback
+// ═════════════════════════════════════════════════════════════════════════════
+const anim = { running: false, paused: false, t0: 0, pausedAt: 0, lastT: 0, raf: 0, recording: false, recorder: null, chunks: [], recEnd: 0 };
+let drawPending = false;
+function requestDraw() { drawPending = true; kick(); }
+function kick() { if (!anim.raf) anim.raf = requestAnimationFrame(tick); }
+function animClock(now) { return anim.paused ? anim.pausedAt : (now - anim.t0) / 1000; }
+function tick(now) {
+  anim.raf = 0;
+  let again = false;
+  // source playback on its own (frame bar ▶) while the dots aren't animating
+  if (media.playing && !anim.running) {
+    if (media.kind === 'video') { uploadSource(); updateFrameCounter(); }
+    else if (media.kind === 'gif') {
+      media.gifClock += now - media.lastTs;
+      while (media.gifClock >= media.durations[media.cur]) {
+        media.gifClock -= media.durations[media.cur];
+        media.cur = (media.cur + 1) % media.count;
+        src.el = media.frames[media.cur]; uploadSource(); updateFrameCounter();
+      }
+    }
+    media.lastTs = now;
+    drawPending = true; again = true;
+  }
+  if (anim.running) {
+    const t = animClock(now);
+    anim.lastT = t;
+    if (media.kind && !anim.paused) {
+      if (media.kind === 'video') { uploadSource(); updateFrameCounter(); }
+      else seekMediaToTime(t);
+    }
+    drawFrame(t, false);
+    drawPending = false;
+    if (anim.recording) {
+      $('rec-bar').style.width = Math.min(100, t / V('recsecs') * 100) + '%';
+      if (t >= V('recsecs')) { finishRecording(); return; }
+    } else if (!anim.paused && ui.motion === 'none' && ui.loop === 'once' && ui.intro === 'gather' &&
+               !(V('orbamt') > 0 && ui.d3 === 'on') && !media.kind && t > introLength() + 0.3) {
+      stopAnim(true); return;   // nothing left to move
+    }
+    again = !anim.paused;
+  } else if (drawPending) {
+    drawFrame(anim.lastT, true);
+    drawPending = false;
+  }
+  if (again) kick();
+}
+function startAnim(record) {
+  if (!layout.N) return;
+  stopAnim(true);
+  stopMediaPlay();
+  Object.assign(anim, { running: true, paused: false, t0: performance.now(), pausedAt: 0, lastT: 0 });
+  if (media.kind === 'video') { media.video.currentTime = 0; media.video.play().catch(() => {}); }
+  if (media.kind === 'gif') seekMediaToTime(0);
+  $('stop-row').style.display = 'flex';
+  $('btn-pause').textContent = '⏸ Pause';
+  ['btn-play', 'btn-rec', 'btn-seq'].forEach(id => $(id).disabled = true);
+  if (record) {
+    const stream = canvas.captureStream(30);
+    const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+    anim.recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6 });
+    anim.chunks = [];
+    anim.recorder.ondataavailable = e => { if (e.data.size) anim.chunks.push(e.data); };
+    anim.recorder.onstop = () => {
+      const blob = new Blob(anim.chunks, { type: 'video/webm' });
+      anim.lastBlob = blob;
+      if (blob.size) dl(URL.createObjectURL(blob), 'dots.webm');
+    };
+    anim.recorder.start(100);
+    anim.recording = true;
+    $('rec-progress').style.display = 'block'; $('rec-bar').style.width = '0';
+    $('btn-pause').disabled = true;
+  }
+  kick();
+}
+function finishRecording() {
+  anim.recording = false;
+  if (anim.recorder && anim.recorder.state !== 'inactive') anim.recorder.stop();
+  stopAnim(true);
+}
+function stopAnim(keepFrame) {
+  if (anim.recording) { anim.recording = false; if (anim.recorder?.state !== 'inactive') anim.recorder.stop(); }
+  anim.running = false; anim.paused = false;
+  if (media.video && !media.playing) media.video.pause();
+  $('stop-row').style.display = 'none';
+  $('rec-progress').style.display = 'none';
+  $('btn-pause').disabled = false;
+  ['btn-play', 'btn-rec', 'btn-seq'].forEach(id => $(id).disabled = false);
+  if (!keepFrame) anim.lastT = 0;
+  requestDraw();
+}
+function togglePause() {
+  if (!anim.running || anim.recording) return;
+  const now = performance.now();
+  if (anim.paused) { anim.t0 = now - anim.pausedAt * 1000; anim.paused = false; media.video?.play().catch(() => {}); $('btn-pause').textContent = '⏸ Pause'; kick(); }
+  else { anim.pausedAt = animClock(now); anim.paused = true; media.video?.pause(); $('btn-pause').textContent = '▶ Resume'; }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Exports
+// ═════════════════════════════════════════════════════════════════════════════
+function exportPNG(scale) {
+  if (!layout.N) return;
+  const W = layout.W, H = layout.H;
+  if (scale !== 1) { canvas.width = W * scale; canvas.height = H * scale; }
+  drawFrame(anim.lastT, !anim.running, scale);
+  canvas.toBlob(b => {
+    dl(URL.createObjectURL(b), scale === 1 ? 'dots.png' : `dots@${scale}x.png`);
+    if (scale !== 1) { canvas.width = W; canvas.height = H; requestDraw(); }
+  }, 'image/png');
+}
+function crc32(data) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) { c ^= data[i]; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; }
+  return (~c) >>> 0;
+}
+function buildZip(entries) {   // stored (uncompressed) ZIP
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  for (const { name, data } of entries) {
+    const n = enc.encode(name), crc = crc32(data);
+    const lh = new Uint8Array(30 + n.length), lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true);
+    lv.setUint32(14, crc, true); lv.setUint32(18, data.length, true); lv.setUint32(22, data.length, true); lv.setUint16(26, n.length, true);
+    lh.set(n, 30);
+    const cd = new Uint8Array(46 + n.length), cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+    cv.setUint32(16, crc, true); cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true);
+    cv.setUint16(28, n.length, true); cv.setUint32(42, offset, true); cd.set(n, 46);
+    parts.push(lh, data); central.push(cd); offset += lh.length + data.length;
+  }
+  const cdSize = central.reduce((s, e) => s + e.length, 0);
+  const eocd = new Uint8Array(22), ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, entries.length, true); ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, eocd]);
+}
+async function exportPNGSeq() {
+  if (!layout.N) return;
+  stopAnim(true); stopMediaPlay();
+  const fps = 24, total = Math.max(1, Math.round(V('recsecs') * fps)), entries = [];
+  ['btn-play', 'btn-rec', 'btn-seq'].forEach(id => $(id).disabled = true);
+  $('rec-progress').style.display = 'block';
+  for (let i = 0; i < total; i++) {
+    const t = i / fps;
+    if (media.kind) await seekMediaToTime(t);
+    drawFrame(t, false);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    entries.push({ name: `dots_${String(i).padStart(4, '0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) });
+    $('rec-bar').style.width = ((i + 1) / total * 100) + '%';
+    $('tb-info').textContent = `Rendering PNG sequence… ${i + 1} / ${total}`;
+  }
+  const zip = buildZip(entries);
+  anim.lastZip = { frames: entries.length, size: zip.size };
+  dl(URL.createObjectURL(zip), 'dots_frames.zip');
+  $('rec-progress').style.display = 'none';
+  ['btn-play', 'btn-rec', 'btn-seq'].forEach(id => $(id).disabled = false);
+  rebuildInfo();
+  requestDraw();
+}
+function rebuildInfo() {
+  if (!layout.N) return;
+  $('tb-info').textContent = `${src.name} · ${src.w}×${src.h} → ${layout.W}×${layout.H} · ${layout.N.toLocaleString()} dots` +
+    (media.kind ? ` · ${media.count} frames` : '');
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Focus picking (CPU mirror of the shader's depth for the dot nearest the click)
+// ═════════════════════════════════════════════════════════════════════════════
+let picking = false;
+function togglePickFocus() { picking = !picking; $('pick-btn').classList.toggle('on', picking); canvas.classList.toggle('picking', picking); }
+function cpuLum(px, w, h, u, v) {
+  const x = clamp(Math.round(u * (w - 1)), 0, w - 1), y = clamp(Math.round(v * (h - 1)), 0, h - 1), k = (y * w + x) * 4;
+  const a = px[k + 3] / 255;
+  let l = (0.299 * px[k] + 0.587 * px[k + 1] + 0.114 * px[k + 2]) / 255 * a + (1 - a);
+  l = clamp((l * 255 - V('black')) / Math.max(1, V('white') - V('black')), 0, 1);
+  l = clamp(l * V('bri') / 100, 0, 1);
+  l = clamp((l - 0.5) * V('con') / 100 + 0.5, 0, 1);
+  return $('invert').checked ? 1 - l : l;
+}
+function pickFocusAt(cx, cy) {
+  if (!layout.N) return;
+  if (!srcPixels) srcPixels = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height).data;
+  const F = frameParams(anim.lastT, !anim.running), M = rotMat(F.yaw, F.pitch), D = F.camDist;
+  const W = layout.W, H = layout.H, d = layout.data, thr = V('thr') / 100, mix = V('dmix') / 100, clus = V('dclus') / 100;
+  const dsrc = ui.depthSrc === 'random' ? 1 : ui.depthSrc === 'map' && depthCanvas ? 2 : 0;
+  let best = 1e18, bestZ = 0;
+  for (let i = 0; i < layout.N; i++) {
+    const o = i * 9, u = d[o] / W, v = d[o + 1] / H;
+    const tone = (1 - cpuLum(srcPixels, srcCanvas.width, srcCanvas.height, u, v) - thr) / Math.max(1e-4, 1 - thr);
+    if (tone <= 0 || (ui.tone !== 'size' && d[o + 2] > tone)) continue;
+    let zr = d[o + 4];
+    if (clus > 0) { const q = zr * 2 - 1; zr = 0.5 + 0.5 * Math.sign(q) * Math.pow(Math.abs(q), 1 + clus * 4); }
+    let zi = dsrc === 2 ? depthPixels[(clamp(Math.round(v * (depthCanvas.height - 1)), 0, depthCanvas.height - 1) * depthCanvas.width + clamp(Math.round(u * (depthCanvas.width - 1)), 0, depthCanvas.width - 1)) * 4] / 255
+                        : 1 - cpuLum(srcPixels, srcCanvas.width, srcCanvas.height, u, v);
+    if ($('dinv').checked) zi = 1 - zi;
+    const z01 = dsrc === 1 ? zr : zi + (zr - zi) * mix;
+    const x = d[o] - W / 2, y = H / 2 - d[o + 1], z = (z01 - 0.5) * F.depthAmt;
+    const wx = M[0] * x + M[3] * y + M[6] * z, wy = M[1] * x + M[4] * y + M[7] * z, wz = M[2] * x + M[5] * y + M[8] * z;
+    const p = D / Math.max(1, D - wz), sx = W / 2 + wx * p, sy = H / 2 - wy * p;
+    const dd = (sx - cx) ** 2 + (sy - cy) ** 2;
+    if (dd < best) { best = dd; bestZ = wz; }
+  }
+  const f = clamp(Math.round(bestZ / (F.depthAmt * 0.5 || 1) * 100), -100, 100);
+  $('focus').value = f; $('focus').dispatchEvent(new Event('input', { bubbles: true }));
+  return f;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Canvas: zoom, orbit drag, pick
+// ═════════════════════════════════════════════════════════════════════════════
+// Display zoom (CSS size of the canvas). 0 = fit to the window.
+let zoom = 0;
+function fitZoom() {
+  const wrap = $('canvas-wrap');
+  return Math.min((wrap.clientWidth - 40) / canvas.width, (wrap.clientHeight - 40) / canvas.height, 1);
+}
+const effZoom = () => zoom || fitZoom();
+function setZoom(z, anchor) {
+  const wrap = $('canvas-wrap'), r0 = canvas.getBoundingClientRect();
+  zoom = z ? clamp(z, 0.05, 8) : 0;
+  applyZoom();
+  if (anchor && r0.width) {   // keep the point under the cursor in place
+    const fx = (anchor.x - r0.left) / r0.width, fy = (anchor.y - r0.top) / r0.height, r1 = canvas.getBoundingClientRect();
+    wrap.scrollLeft += r1.left + fx * r1.width - anchor.x;
+    wrap.scrollTop  += r1.top + fy * r1.height - anchor.y;
+  }
+}
+function applyZoom() {
+  const z = effZoom();
+  canvas.style.width = Math.round(canvas.width * z) + 'px'; canvas.style.height = Math.round(canvas.height * z) + 'px';
+  $('zoom-val').textContent = zoom ? Math.round(zoom * 100) + '%' : 'Fit';
+}
+window.addEventListener('resize', () => { if (!zoom) applyZoom(); });
+// Trackpad / wheel zoom, like Halftone: pinch (ctrlKey) zooms fast, two-finger scroll zooms gently
+$('canvas-wrap').addEventListener('wheel', e => {
+  e.preventDefault();
+  const k = e.ctrlKey ? 0.01 : 0.0015;
+  setZoom(effZoom() * Math.exp(clamp(-e.deltaY * k, -0.4, 0.4)), { x: e.clientX, y: e.clientY });
+}, { passive: false });
+
+// Camera angles. Turn wraps around (−180..180), tilt stops at ±90.
+function setView(yaw, pitch) {
+  const wrap = a => ((a + 180) % 360 + 360) % 360 - 180;
+  const y = $('yaw'), p = $('pitch');
+  y.value = Math.round(wrap(yaw) * 2) / 2; p.value = Math.round(clamp(pitch, -90, 90) * 2) / 2;
+  updateLabel(y); updateLabel(p);
+  requestDraw(); presetDirtyCheck();
+}
+let viewTween = 0;
+function animateView(yaw, pitch, ms = 280) {
+  cancelAnimationFrame(viewTween);
+  const y0 = V('yaw'), p0 = V('pitch'), t0 = performance.now();
+  let dy = ((yaw - y0) % 360 + 540) % 360 - 180;            // shortest way round
+  const step = now => {
+    const k = clamp((now - t0) / ms, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    setView(y0 + dy * e, p0 + (pitch - p0) * e);
+    if (k < 1) viewTween = requestAnimationFrame(step);
+  };
+  viewTween = requestAnimationFrame(step);
+}
+function resetView() { animateView(0, 0); }
+
+// Canvas: drag = orbit in 3D (pan in 2D, or with Shift / Space held); click = pick focus when picking
+(() => {
+  const wrap = $('canvas-wrap');
+  let drag = null, space = false;
+  addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { space = true; e.preventDefault(); } });
+  addEventListener('keyup', e => { if (e.code === 'Space') space = false; });
+  wrap.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const onCanvas = e.target === canvas;
+    if (onCanvas && picking) {
+      const r = canvas.getBoundingClientRect();
+      pickFocusAt((e.clientX - r.left) / r.width * layout.W, (e.clientY - r.top) / r.height * layout.H);
+      togglePickFocus(); return;
+    }
+    const orbit = onCanvas && ui.d3 === 'on' && !e.shiftKey && !space;
+    drag = { orbit, x: e.clientX, y: e.clientY, yaw: V('yaw'), pitch: V('pitch'), sl: wrap.scrollLeft, st: wrap.scrollTop };
+    if (!orbit) wrap.classList.add('panning');
+    wrap.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  wrap.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (drag.orbit) setView(drag.yaw + dx * 0.4, drag.pitch + dy * 0.4);
+    else { wrap.scrollLeft = drag.sl - dx; wrap.scrollTop = drag.st - dy; }
+  });
+  const end = () => { drag = null; wrap.classList.remove('panning'); };
+  wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
+})();
+
+// ── Axis ball (view gizmo) ───────────────────────────────────────────────────
+// Shows the world axes as seen by the camera (same rotation as the shader's u_rot).
+// Drag it to orbit; click an axis bubble to look straight along that axis.
+const AXES = [
+  { v: [1, 0, 0], label: 'X', col: '#e0605a', view: [-90, 0] },  { v: [-1, 0, 0], col: '#e0605a', view: [90, 0] },
+  { v: [0, 1, 0], label: 'Y', col: '#7ac35a', view: [0, 90] },   { v: [0, -1, 0], col: '#7ac35a', view: [0, -90] },
+  { v: [0, 0, 1], label: 'Z', col: '#5a8ae0', view: [0, 0] },    { v: [0, 0, -1], col: '#5a8ae0', view: [180, 0] },
+];
+let gizmoHits = [];
+function drawGizmo(yaw, pitch) {
+  const g = $('gizmo');
+  if (!$('view-ctl').classList.contains('show')) return;
+  const dpr = window.devicePixelRatio || 1, S = 104;
+  if (g.width !== S * dpr) { g.width = g.height = S * dpr; }
+  const c = g.getContext('2d'), M = rotMat(yaw, pitch), R = 34, cx = S / 2, cy = S / 2;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, S, S);
+  c.fillStyle = 'rgba(20,20,20,0.55)'; c.beginPath(); c.arc(cx, cy, S / 2 - 1, 0, 7); c.fill();
+  const pts = AXES.map(a => {
+    const [x, y, z] = a.v;
+    const sx = M[0] * x + M[3] * y + M[6] * z, sy = M[1] * x + M[4] * y + M[7] * z, sz = M[2] * x + M[5] * y + M[8] * z;
+    return { ...a, px: cx + sx * R, py: cy - sy * R, z: sz };
+  }).sort((a, b) => a.z - b.z);                                  // back to front
+  gizmoHits = pts;
+  for (const p of pts) {
+    const pos = !!p.label, fade = 0.55 + 0.45 * (p.z + 1) / 2;
+    c.globalAlpha = fade;
+    if (pos) { c.strokeStyle = p.col; c.lineWidth = 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(p.px, p.py); c.stroke(); }
+    c.fillStyle = pos ? p.col : 'rgba(0,0,0,0)';
+    c.strokeStyle = p.col; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(p.px, p.py, pos ? 9 : 7, 0, 7);
+    if (pos) c.fill(); else { c.fillStyle = 'rgba(30,30,30,0.9)'; c.fill(); c.stroke(); }
+    if (pos) { c.fillStyle = '#111'; c.font = 'bold 10px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(p.label, p.px, p.py + 0.5); }
+  }
+  c.globalAlpha = 1;
+}
+(() => {
+  const g = $('gizmo');
+  let drag = null;
+  g.addEventListener('pointerdown', e => {
+    drag = { x: e.clientX, y: e.clientY, yaw: V('yaw'), pitch: V('pitch'), moved: false };
+    g.setPointerCapture(e.pointerId); g.classList.add('dragging');
+  });
+  g.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    if (drag.moved) { cancelAnimationFrame(viewTween); setView(drag.yaw + dx * 0.8, drag.pitch + dy * 0.8); }
+  });
+  g.addEventListener('pointerup', e => {
+    g.classList.remove('dragging');
+    if (drag && !drag.moved) {   // click: snap to the nearest axis bubble (front-most wins)
+      const r = g.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      const hit = [...gizmoHits].reverse().find(p => Math.hypot(p.px - x, p.py - y) <= 11);
+      if (hit) animateView(hit.view[0], hit.view[1]);
+    }
+    drag = null;
+  });
+  g.addEventListener('pointercancel', () => { drag = null; g.classList.remove('dragging'); });
+})();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Sidebar wiring
+// ═════════════════════════════════════════════════════════════════════════════
+const LAYOUT_IDS = new Set(['outsize', 'dist', 'dmin', 'dmax', 'uni', 'div', 'seed']);
+const SOURCE_IDS = new Set(['detail', 'blur']);
+let layoutTimer = 0;
+function updateLabel(el) {
+  const lbl = el.nextElementSibling;
+  if (lbl && lbl.classList.contains('slider-val')) lbl.textContent = (+el.value) + (el.dataset.u || '');
+}
+function onControl(el) {
+  if (el.type === 'range') updateLabel(el);
+  const id = el.id;
+  if (LAYOUT_IDS.has(id)) { clearTimeout(layoutTimer); layoutTimer = setTimeout(rebuildLayout, 120); }
+  else if (SOURCE_IDS.has(id)) { uploadSource(); requestDraw(); }
+  else if (id === 'rack') { ui.rack = el.checked ? 'on' : 'off'; refreshVisibility(); requestDraw(); }
+  else requestDraw();
+}
+$('sidebar').addEventListener('input', e => {
+  if (e.target.id && !e.target.closest('.curve') && !e.target.closest('#preset-box')) { onControl(e.target); presetDirtyCheck(); }
+});
+$('sidebar').addEventListener('change', e => {
+  if (e.target.type === 'checkbox' && !e.target.closest('#preset-box')) { onControl(e.target); presetDirtyCheck(); }
+});
+function setToggle(key, val, quiet) {
+  ui[key] = val;
+  document.querySelectorAll(`[data-tg="${key}"]`).forEach(b => b.classList.toggle('active', b.dataset.val === val));
+  refreshVisibility();
+  canvas.classList.toggle('orbit', ui.d3 === 'on');
+  $('view-ctl').classList.toggle('show', ui.d3 === 'on');
+  if (quiet) return;
+  presetDirtyCheck();
+  if (key === 'spacing') rebuildLayout();
+  else if (key === 'scatter') rescatter();
+  else requestDraw();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-tg]');
+  if (b) setToggle(b.dataset.tg, b.dataset.val);
+});
+function refreshVisibility() {
+  document.querySelectorAll('#sidebar [data-show]').forEach(el => {
+    const ok = el.dataset.show.split(';').every(cond => {
+      const [k, vals] = cond.split(':');
+      return vals.split(',').includes(String(ui[k]));
+    });
+    el.style.display = ok ? '' : 'none';
+  });
+  CURVE_KEYS.forEach(curveEditorRefresh);
+}
+function randomSeed() { $('seed').value = Math.floor(Math.random() * 999999); rebuildLayout(); }
+
+// Type a slider value: click the value label, type, Enter (Esc cancels)
+document.addEventListener('click', e => {
+  const lbl = e.target.closest && e.target.closest('.slider-val');
+  if (!lbl || lbl.isContentEditable) return;
+  const el = lbl.previousElementSibling;
+  if (!el || el.type !== 'range') return;
+  const before = lbl.textContent;
+  lbl.contentEditable = 'true'; lbl.spellcheck = false; lbl.textContent = String(+el.value); lbl.focus();
+  const sel = getSelection(), rg = document.createRange(); rg.selectNodeContents(lbl); sel.removeAllRanges(); sel.addRange(rg);
+  let done = false;
+  const finish = commit => {
+    if (done) return; done = true;
+    const typed = parseFloat(lbl.textContent.replace(',', '.'));
+    lbl.contentEditable = 'false'; lbl.textContent = before;
+    if (!commit || !isFinite(typed)) return;
+    const min = +el.min, max = +el.max, step = el.step === 'any' ? 0 : (+el.step || 1);
+    const raw = clamp(typed, min, max);
+    if (step && Math.abs((raw - min) / step - Math.round((raw - min) / step)) > 1e-6)
+      el.step = Number.isInteger(raw) && Number.isInteger(min) ? '1' : 'any';
+    el.value = raw;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  lbl.addEventListener('keydown', function k(ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); finish(true); lbl.removeEventListener('keydown', k); lbl.blur(); }
+    else if (ev.key === 'Escape') { finish(false); lbl.removeEventListener('keydown', k); lbl.blur(); }
+  });
+  lbl.addEventListener('blur', () => finish(true), { once: true });
+});
+
+// Draggable sections (order saved in localStorage)
+let dragSrc = null;
+function saveSectionOrder(wrap, key) {
+  try { localStorage.setItem(key, JSON.stringify([...wrap.querySelectorAll(':scope > .ds')].map(el => el.dataset.key))); } catch {}
+}
+function restoreSectionOrder(wrap, key) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key)); if (!Array.isArray(saved)) return;
+    const map = {}; wrap.querySelectorAll(':scope > .ds').forEach(el => map[el.dataset.key] = el);
+    saved.forEach(k => { if (map[k]) wrap.appendChild(map[k]); });
+  } catch {}
+}
+// Folding: a caret in every section header (and the Preset box). A click on the header
+// toggles it (a drag still reorders); the folded set is saved in localStorage.
+const FOLD_KEY = 'dots-folded';
+function initFolding() {
+  let folded = [];
+  try { folded = JSON.parse(localStorage.getItem(FOLD_KEY)) || []; } catch {}
+  const boxes = [...document.querySelectorAll('#sections > .ds'), $('preset-box')];
+  const keyOf = box => box.id === 'preset-box' ? 'preset' : box.dataset.key;
+  const save = () => { try { localStorage.setItem(FOLD_KEY, JSON.stringify(boxes.filter(b => b.classList.contains('folded')).map(keyOf))); } catch {} };
+  boxes.forEach(box => {
+    const head = box.querySelector(':scope > .section-label, :scope > .preset-head');
+    const caret = document.createElement('span');
+    caret.className = 'fold-caret';
+    head.insertBefore(caret, head.firstChild);
+    head.title = 'Click to fold / unfold' + (box.id === 'preset-box' ? '' : ' · drag to reorder');
+    if (folded.includes(keyOf(box))) box.classList.add('folded');
+    head.addEventListener('click', e => {
+      if (e.target.closest('button, input, select')) return;
+      box.classList.toggle('folded');
+      save();
+      CURVE_KEYS.forEach(curveEditorRefresh);   // canvases inside need a size again when unfolded
+    });
+  });
+}
+function initDrag(wrap, key) {
+  const clear = () => wrap.querySelectorAll(':scope > .ds').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+  wrap.addEventListener('dragstart', e => {
+    const ds = e.target.closest('.ds'); if (!ds || ds.parentElement !== wrap) return;
+    dragSrc = ds; ds.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ds.dataset.key);
+  });
+  wrap.addEventListener('dragend', e => { e.target.closest('.ds')?.classList.remove('dragging'); clear(); dragSrc = null; saveSectionOrder(wrap, key); });
+  wrap.addEventListener('dragover', e => {
+    if (!dragSrc) return;
+    e.preventDefault();
+    const t = e.target.closest('.ds'); if (!t || t === dragSrc || t.parentElement !== wrap) return;
+    clear(); const r = t.getBoundingClientRect(); t.classList.add(e.clientY < r.top + r.height / 2 ? 'drag-over-top' : 'drag-over-bottom');
+  });
+  wrap.addEventListener('drop', e => {
+    if (!dragSrc) return;
+    e.preventDefault();
+    const t = e.target.closest('.ds'); if (!t || t === dragSrc || t.parentElement !== wrap) return;
+    clear(); const r = t.getBoundingClientRect();
+    wrap.insertBefore(dragSrc, e.clientY < r.top + r.height / 2 ? t : t.nextSibling);
+  });
+}
+
+// File drop (on the upload box or anywhere on the page)
+['dragover', 'drop'].forEach(type => document.addEventListener(type, e => {
+  if (!e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return;
+  e.preventDefault();
+  if (type === 'drop') { $('upload-area').classList.remove('drag-over'); loadFile(e.dataTransfer.files[0]); }
+  else $('upload-area').classList.add('drag-over');
+}));
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('upload-area').classList.remove('drag-over'); });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Hex colour picker for every <input type="color"> (the browser's own picker can't be set to hex)
+// ═════════════════════════════════════════════════════════════════════════════
+const cp = { target: null, h: 0, s: 0, v: 1 };
+function hsvToHex(h, s, v) {
+  const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+}
+function hexToHsv(hex) {
+  const [r, g, b] = hexToRgb(hex), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: mx ? d / mx : 0, v: mx };
+}
+function cpDraw() {
+  const c = $('cp-sv-canvas'), g = c.getContext('2d');
+  g.fillStyle = `hsl(${cp.h},100%,50%)`; g.fillRect(0, 0, c.width, c.height);
+  const w = g.createLinearGradient(0, 0, c.width, 0); w.addColorStop(0, '#fff'); w.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = w; g.fillRect(0, 0, c.width, c.height);
+  const k = g.createLinearGradient(0, 0, 0, c.height); k.addColorStop(0, 'rgba(0,0,0,0)'); k.addColorStop(1, '#000');
+  g.fillStyle = k; g.fillRect(0, 0, c.width, c.height);
+  $('cp-sv-cursor').style.left = cp.s * c.width + 'px'; $('cp-sv-cursor').style.top = (1 - cp.v) * c.height + 'px';
+  $('cp-hue').value = Math.round(cp.h);
+  if (document.activeElement !== $('cp-hex')) $('cp-hex').value = hsvToHex(cp.h, cp.s, cp.v);
+}
+function cpApply() {
+  const hex = hsvToHex(cp.h, cp.s, cp.v);
+  if (cp.target && cp.target.value !== hex) { cp.target.value = hex; cp.target.dispatchEvent(new Event('input', { bubbles: true })); }
+}
+function cpSetHex(hex) { Object.assign(cp, hexToHsv(hex)); cpDraw(); cpApply(); }
+function openCP(inp) {
+  cp.target = inp; Object.assign(cp, hexToHsv(inp.value));
+  const p = $('cp-popup'); p.style.display = 'block'; cpDraw();
+  const r = inp.getBoundingClientRect();
+  let left = r.left, top = r.bottom + 4;
+  if (left + 212 > innerWidth - 8) left = innerWidth - 220;
+  if (top + 200 > innerHeight - 8) top = r.top - 204;
+  p.style.left = left + 'px'; p.style.top = top + 'px';
+}
+(() => {
+  let sv = false;
+  const pick = e => {
+    const r = $('cp-sv-canvas').getBoundingClientRect();
+    cp.s = clamp((e.clientX - r.left) / r.width, 0, 1); cp.v = clamp(1 - (e.clientY - r.top) / r.height, 0, 1);
+    cpDraw(); cpApply();
+  };
+  $('cp-sv-wrap').addEventListener('mousedown', e => { sv = true; pick(e); e.preventDefault(); });
+  document.addEventListener('mousemove', e => { if (sv) pick(e); });
+  document.addEventListener('mouseup', () => { sv = false; });
+  $('cp-hue').addEventListener('input', () => { cp.h = +$('cp-hue').value; cpDraw(); cpApply(); });
+  $('cp-hex').addEventListener('input', () => { const v = $('cp-hex').value; if (/^#[0-9a-f]{6}$/i.test(v)) cpSetHex(v.toLowerCase()); });
+  $('cp-hex').addEventListener('change', () => {
+    let v = $('cp-hex').value.trim().replace(/^#?/, '#');
+    if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + [...v.slice(1)].map(c => c + c).join('');
+    if (/^#[0-9a-f]{6}$/i.test(v)) cpSetHex(v.toLowerCase()); else cpDraw();
+  });
+  $('cp-hex').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+  if (!window.EyeDropper) $('cp-eyedrop').style.display = 'none';
+  $('cp-eyedrop').addEventListener('click', async () => { try { cpSetHex((await new EyeDropper().open()).sRGBHex); } catch {} });
+  document.addEventListener('click', e => {
+    const inp = e.target.closest && e.target.closest('input[type="color"]');
+    if (!inp) return;
+    e.preventDefault();
+    if ($('cp-popup').style.display === 'block' && cp.target === inp) { $('cp-popup').style.display = 'none'; return; }
+    openCP(inp);
+  }, true);
+  document.addEventListener('mousedown', e => {
+    const p = $('cp-popup');
+    if (p.style.display === 'block' && !p.contains(e.target) && !(e.target.matches && e.target.matches('input[type="color"]'))) p.style.display = 'none';
+  });
+  document.addEventListener('scroll', e => { if (!$('cp-popup').contains(e.target)) $('cp-popup').style.display = 'none'; }, true);
+})();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Presets: every sidebar control + toggle + curve, stored in localStorage.
+// Loading a preset and changing things marks it "modified"; exports always use the
+// current settings, and the preset itself only changes when you click Update.
+// (The source image/video and an uploaded depth map are not part of a preset.)
+// ═════════════════════════════════════════════════════════════════════════════
+const PRESET_KEY = 'dots-presets', DEFAULT_NAME = 'Default';
+const presets = { list: {}, current: DEFAULT_NAME, base: null, factory: null };
+function presetControls() {
+  return [...document.querySelectorAll('#sections input[id], #sections select[id]')]
+    .filter(el => el.type !== 'file');
+}
+function getState() {
+  const inputs = {};
+  presetControls().forEach(el => { inputs[el.id] = el.type === 'checkbox' ? el.checked : el.type === 'color' || el.tagName === 'SELECT' ? el.value : +el.value; });
+  return { app: 'dots', version: 1, inputs, ui: { ...ui }, curves: JSON.parse(JSON.stringify(curves)) };
+}
+function applyState(st) {
+  if (!st || !st.inputs) return;
+  // controls added after a preset was saved fall back to their built-in defaults
+  const inputs = Object.assign({}, presets.factory && presets.factory.inputs, st.inputs);
+  for (const [id, v] of Object.entries(inputs)) {
+    const el = $(id); if (!el) continue;
+    if (el.type === 'checkbox') { el.checked = !!v; continue; }
+    if (el.type === 'range') {
+      const min = +el.min, step = el.step === 'any' ? 0 : (+el.step || 1);
+      if (step && Math.abs((v - min) / step - Math.round((v - min) / step)) > 1e-6) el.step = 'any';   // keep typed values
+      el.value = v; updateLabel(el);
+    } else el.value = v;
+  }
+  Object.entries(st.ui || {}).forEach(([k, v]) => { if (k in ui) setToggle(k, v, true); });
+  ui.rack = $('rack').checked ? 'on' : 'off';
+  refreshVisibility();
+  Object.entries(st.curves || {}).forEach(([k, c]) => { if (CURVE_KEYS.includes(k)) setCurve(k, c); });
+  uploadSource();
+  rebuildLayout();
+}
+const stateKey = st => JSON.stringify([st.inputs, st.ui, st.curves]);
+function presetsLoad() {
+  try { presets.list = JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { presets.list = {}; }
+}
+function presetsSave() {
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(presets.list)); return true; }
+  catch { alert('Could not save presets (browser storage is blocked or full). Use Export file instead.'); return false; }
+}
+function presetGet(name) { return name === DEFAULT_NAME ? presets.factory : presets.list[name]?.state; }
+function presetRefreshUI() {
+  const sel = $('pr-select');
+  sel.innerHTML = '';
+  const add = (name, label) => { const o = document.createElement('option'); o.value = name; o.textContent = label || name; sel.appendChild(o); };
+  add(DEFAULT_NAME, 'Default (built-in)');
+  Object.keys(presets.list).sort((a, b) => a.localeCompare(b)).forEach(n => add(n));
+  sel.value = presets.current;
+  $('pr-head-name').textContent = '· ' + (presets.current === DEFAULT_NAME ? 'Default' : presets.current);
+  presetDirtyCheck();
+}
+function presetDirtyCheck() {
+  if (!presets.base) return;
+  const dirty = stateKey(getState()) !== presets.base;
+  const builtin = presets.current === DEFAULT_NAME;
+  $('pr-state').textContent = dirty ? '● modified' : '';
+  $('pr-update').disabled = !dirty || builtin;
+  $('pr-update').title = builtin ? 'The built-in Default can\'t be overwritten. Use Save new.' : 'Overwrite the loaded preset with the current settings';
+  $('pr-revert').disabled = !dirty;
+  $('pr-delete').disabled = builtin;
+}
+function presetLoad(name) {
+  const st = presetGet(name);
+  if (!st) return;
+  presets.current = name;
+  applyState(st);
+  presets.base = stateKey(getState());
+  presetRefreshUI();
+}
+function presetAskName(initial, onOk) {
+  $('pr-name-row').style.display = 'flex';
+  const inp = $('pr-name');
+  inp.value = initial; inp.focus(); inp.select();
+  const ok = () => {
+    const name = inp.value.trim();
+    if (!name) return;
+    if (name === DEFAULT_NAME) { alert('“Default” is reserved for the built-in preset.'); return; }
+    $('pr-name-row').style.display = 'none';
+    onOk(name);
+  };
+  $('pr-name-ok').onclick = ok;
+  inp.onkeydown = e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') $('pr-name-row').style.display = 'none'; };
+}
+function presetSaveNew() {
+  let base = presets.current === DEFAULT_NAME ? 'My preset' : presets.current, n = 2, name = base;
+  while (presets.list[name]) name = `${base} ${n++}`;
+  presetAskName(name, name => {
+    if (presets.list[name] && !confirm(`Replace the preset “${name}”?`)) return;
+    presets.list[name] = { state: getState(), savedAt: new Date().toISOString() };
+    if (!presetsSave()) return;
+    presets.current = name; presets.base = stateKey(getState());
+    presetRefreshUI();
+  });
+}
+function presetUpdate() {
+  if (presets.current === DEFAULT_NAME || !presets.list[presets.current]) return;
+  presets.list[presets.current] = { state: getState(), savedAt: new Date().toISOString() };
+  if (!presetsSave()) return;
+  presets.base = stateKey(getState());
+  presetDirtyCheck();
+}
+function presetRevert() { presetLoad(presets.current); }
+function presetRename() {
+  $('pr-menu').classList.remove('open');
+  if (presets.current === DEFAULT_NAME) { alert('The built-in Default can\'t be renamed. Use Save new.'); return; }
+  const old = presets.current;
+  presetAskName(old, name => {
+    if (name === old) return;
+    if (presets.list[name] && !confirm(`Replace the preset “${name}”?`)) return;
+    presets.list[name] = presets.list[old]; delete presets.list[old];
+    if (!presetsSave()) return;
+    presets.current = name; presetRefreshUI();
+  });
+}
+function presetDelete() {
+  $('pr-menu').classList.remove('open');
+  const name = presets.current;
+  if (name === DEFAULT_NAME || !confirm(`Delete the preset “${name}”? This can't be undone.`)) return;
+  delete presets.list[name];
+  if (!presetsSave()) return;
+  presets.current = DEFAULT_NAME;
+  presets.base = stateKey(presets.factory);   // keep current settings; they now count as changes to Default
+  presetRefreshUI();
+}
+function presetExportFile() {
+  $('pr-menu').classList.remove('open');
+  const name = presets.current === DEFAULT_NAME ? 'dots-settings' : presets.current;
+  const blob = new Blob([JSON.stringify({ name, ...getState() }, null, 2)], { type: 'application/json' });
+  dl(URL.createObjectURL(blob), name.replace(/[^\w\- ]+/g, '_') + '.dots-preset.json');
+}
+async function presetImportFile(file) {
+  $('pr-menu').classList.remove('open');
+  if (!file) return;
+  let st;
+  try { st = JSON.parse(await file.text()); } catch { alert('That file isn\'t a valid preset (JSON).'); return; }
+  if (!st || st.app !== 'dots' || !st.inputs) { alert('That file isn\'t a Dots preset.'); return; }
+  let base = (st.name || file.name.replace(/\.dots-preset\.json$|\.json$/i, '')).trim() || 'Imported';
+  if (base === DEFAULT_NAME) base = 'Default (imported)';
+  let name = base, n = 2;
+  while (presets.list[name]) name = `${base} ${n++}`;
+  delete st.name;
+  presets.list[name] = { state: st, savedAt: new Date().toISOString() };
+  presetsSave();
+  presetLoad(name);
+}
+$('pr-select').addEventListener('change', e => {
+  const name = e.target.value;
+  if (stateKey(getState()) !== presets.base && !confirm('Your changes to the current preset aren\'t saved. Load anyway?')) { e.target.value = presets.current; return; }
+  presetLoad(name);
+});
+document.addEventListener('mousedown', e => { if (!e.target.closest('#pr-menu') && !e.target.closest('#pr-more')) $('pr-menu').classList.remove('open'); });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Demo image (so the canvas isn't empty on first open)
+// ═════════════════════════════════════════════════════════════════════════════
+function demoImage() {
+  const c = document.createElement('canvas'); c.width = 900; c.height = 600;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 900, 600);
+  const gr = g.createRadialGradient(380, 230, 20, 450, 300, 250);
+  gr.addColorStop(0, '#9a9a9a'); gr.addColorStop(0.7, '#2a2a2a'); gr.addColorStop(1, '#111');
+  g.fillStyle = gr; g.beginPath(); g.arc(450, 300, 240, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff'; g.font = 'bold 150px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('DOTS', 450, 305);
+  return c;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Boot
+// ═════════════════════════════════════════════════════════════════════════════
+(function boot() {
+  try { if (!initGL()) return; } catch (e) { console.error(e); $('tb-info').textContent = 'WebGL error: ' + e.message; return; }
+  document.querySelectorAll('#sidebar input[type=range]').forEach(updateLabel);
+  document.querySelectorAll('.curve').forEach(buildCurveEditor);
+  Object.entries(CURVE_DEFAULTS).forEach(([k, n]) => setCurve(k, CURVE_PRESETS[n]));
+  Object.keys(ui).forEach(k => setToggle(k, ui[k], true));
+  const wrap = $('sections');
+  restoreSectionOrder(wrap, 'dots-section-order');
+  initFolding();
+  initDrag(wrap, 'dots-section-order');
+  const d = demoImage();
+  setSource(d, 'demo', d.width, d.height);
+  // presets: the factory settings are the built-in "Default"
+  presets.factory = getState();
+  presets.base = stateKey(presets.factory);
+  presetsLoad();
+  presetRefreshUI();
+})();
+</script>
+
+<!-- Version switcher: reads ../manifest.json and lists every versions/<dir>/dots.html -->
+<script>
+(async () => {
+  const sw = document.getElementById('version-switcher'), btn = document.getElementById('vs-toggle');
+  const menu = document.getElementById('vs-menu'), cur = document.getElementById('vs-current');
+  const parts = location.pathname.split('/').filter(Boolean), curDir = (parts[parts.length - 2] || '').toLowerCase();
+  let items = [];
+  try {
+    const res = await fetch('../manifest.json', { cache: 'no-store' });
+    if (res.ok) items = (await res.json()).map(v => ({ name: v.name, href: '../' + v.dir + '/dots.html',
+      dir: v.dir.toLowerCase(), note: [v.savedAt, v.note].filter(Boolean).join(' · ') }));
+  } catch {}
+  if (!items.length) items = [{ name: curDir || '?', href: 'dots.html', dir: curDir, note: '' }];
+  const currentItem = items.find(i => i.dir === curDir) || items[items.length - 1];
+  cur.textContent = currentItem.name;
+  for (const it of items) {
+    const a = document.createElement('a'); a.href = it.href;
+    if (it === currentItem) a.classList.add('vs-current');
+    a.textContent = it.name + (it === currentItem ? '   ●' : ''); a.title = it.note; menu.appendChild(a);
+  }
+  btn.addEventListener('click', e => { e.stopPropagation(); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; });
+  document.addEventListener('mousedown', e => { if (!sw.contains(e.target)) menu.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

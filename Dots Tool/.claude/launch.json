@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dots",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "7824", "--directory", "/Users/v/Claude Code/dots"],
+      "port": 7824
+    }
+  ]
+}
