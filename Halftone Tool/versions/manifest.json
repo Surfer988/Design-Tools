@@ -1,5 +1,6 @@
 [
   { "name": "v1", "dir": "v1", "savedAt": "2026-05-19", "note": "Original stable · Pattern mode" },
   { "name": "v2", "dir": "v2", "savedAt": "2026-11-05", "note": "Merged · colour picker, multi-block, Pattern mode" },
-  { "name": "v2.1", "dir": "v2.1", "savedAt": "2026-11-05", "note": "Stippling tab · image → bars", "current": true }
+  { "name": "v2.1", "dir": "v2.1", "savedAt": "2026-11-05", "note": "Stippling tab · image → bars" },
+  { "name": "v2.2", "dir": "v2.2", "savedAt": "2026-11-10", "note": "Halftone tab · image/video → dots, presets", "current": true }
 ]
